@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.6.0.2
+// @version      0.6.0.3
 // @description  Update citadelofthewind.
 // @author       Oizys, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -63,6 +63,7 @@
     AddCss('.categories','grid-template-columns: repeat(7, 1fr)!important;');
     AddCss('.buildingmenu','grid-template-rows: 0fr 6fr!important;');
     AddCss('#Fishing','filter: brightness(100);-filter-webkit: brightness(100);');
+    AddCss('#addon-version','position: absolute; right: 0; bottom: 0; padding: 10px;');
 
     function SaveAsTownGuideEuCompatible() {
         const importExport = document.querySelector('.importexport');
@@ -899,6 +900,13 @@
                 renderGrid();
             });
         }
+
+        // Versioning
+        const version = GM_info.script.version;
+        const versionDiv = document.createElement("div");
+        versionDiv.id = "addon-version";
+        versionDiv.textContent = "Addon v" + version;
+        document.querySelector(".maincontainer").appendChild(versionDiv);
     }
 
     // TS Visualizer Addon 1.29 by TruckTonka, LowCat
