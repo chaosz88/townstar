@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.6
+// @version      0.6.0.1
 // @description  Update citadelofthewind.
 // @author       Oizys, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -292,7 +292,7 @@
             });
             if (selectedBuilding != type) {
                 selectedBuilding = type;
-                const buildingTypes = document.querySelectorAll('div[id=' + removeSpecialCharacter(type) + ']');
+                const buildingTypes = document.querySelectorAll('[id="' + removeSpecialCharacter(type) + '"]');
                 buildingTypes.forEach((buildingType) => {
                     buildingType.classList.add("selectedbuildingmenubutton");
                 });
