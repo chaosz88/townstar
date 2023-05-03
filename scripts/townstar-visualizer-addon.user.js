@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.6.0.1
+// @version      0.6.0.2
 // @description  Update citadelofthewind.
 // @author       Oizys, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -195,20 +195,6 @@
         // Overwrite getGridFromMap
         getGridFromMap = function(biome, direction) {
             return maps[biome][direction];
-        }
-
-        // Right click remove building.
-        const cells = document.querySelectorAll(".cell");
-
-        for (let i = 0, n = cells.length; i < n; i++) {
-            const cell = cells[i];
-            cell.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-                selected = cell.id;
-                placeTile("remove");
-                renderStats();
-                renderGrid();
-            });
         }
 
         // Overwrite getFullURL
@@ -899,6 +885,20 @@
 
         renderBuildingMenu();
         renderOverlaysOptions();
+
+        // Right click remove building.
+        const cells = document.querySelectorAll(".cell");
+
+        for (let i = 0, n = cells.length; i < n; i++) {
+            const cell = cells[i];
+            cell.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                selected = cell.id;
+                placeTile("remove");
+                renderStats();
+                renderGrid();
+            });
+        }
     }
 
     // TS Visualizer Addon 1.29 by TruckTonka, LowCat
