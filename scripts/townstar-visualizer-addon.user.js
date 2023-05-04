@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.6.0.3
+// @version      0.6.0.4
 // @description  Update citadelofthewind.
 // @author       Oizys, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -622,20 +622,20 @@
         }
 
         const originalNFTProximityBonuses = {
-            Rare_Water_Pump: [3],
-            Haunted_Maze: {
+            "Rare_Water_Pump": [3],
+            "Haunted_Maze": {
                 "Haunted_Maze_-_Zone_1": [3, 2, 1],
                 "Haunted_Maze_-_Zone_2": [2, 1],
                 "Haunted_Maze_-_Zone_3": [3, 3],
                 "Haunted_Maze_-_Zone_4": [1]
             },
-            Diamond_Water_Pump: {
+            "Diamond_Water_Pump": {
                 "Rare_Grand_Aquifer": [1],
                 "Water_Pump": [1],
                 "Diamond_Water_Pump": [2],
                 "Rare_Water_Pump": [3]
             },
-            Diamond_Charge_Station: {
+            "Diamond_Charge_Station": {
                 "Solar_Panel": [1],
                 "Rare_Solar_Panel": [2, 1],
                 "Legendary_Solar_Panel": [4, 3, 2, 1],
@@ -647,19 +647,19 @@
             }
         };
         const boostedNftProximityBonuses = {
-            Haunted_Maze: {
+            "Haunted_Maze": {
                 "Haunted_Maze_-_Zone_1": [6, 5, 4, 3, 2, 1],
                 "Haunted_Maze_-_Zone_2": [4, 3, 2, 1],
                 "Haunted_Maze_-_Zone_3": [4, 4, 4, 4],
                 "Haunted_Maze_-_Zone_4": [2, 1]
             },
-            Diamond_Water_Pump: {
+            "Diamond_Water_Pump": {
                 "Rare_Grand_Aquifer": [2, 1],
                 "Water_Pump": [2],
                 "Diamond_Water_Pump": [2],
                 "Rare_Water_Pump": [6]
             },
-            Diamond_Charge_Station: {
+            "Diamond_Charge_Station": {
                 "Solar_Panel": [2, 1],
                 "Rare_Solar_Panel": [4, 3, 2, 1],
                 "Legendary_Solar_Panel": [8, 7, 6, 5, 4, 3, 2, 1],
@@ -668,6 +668,30 @@
                 "Legendary_Tesla_Coil": [8, 7, 6, 5, 4, 3, 2, 1],
                 "Nuclear_Power": [8, 7, 6, 5, 4, 3, 2, 1],
                 "Power_Plant": [6, 5, 4, 3, 2, 1]
+            }
+        };
+        const boostedNftProximityEffects = {
+            "Haunted_Maze": {
+                "Haunted_Maze_-_Zone_1": ["Nectar"],
+                "Haunted_Maze_-_Zone_2": ["Clay_Lump"],
+                "Haunted_Maze_-_Zone_3": ["PositiveOnlySalty"],
+                "Haunted_Maze_-_Zone_4": ["Nectar"]
+            },
+            "Diamond_Water_Pump": {
+                "Rare_Grand_Aquifer": ["Water_Drum"],
+                "Water_Pump": ["Water_Drum"],
+                "Diamond_Water_Pump": ["Water_Drum"],
+                "Rare_Water_Pump": ["Water_Drum"]
+            },
+            "Diamond_Charge_Station": {
+                "Solar_Panel": ["Energy"],
+                "Rare_Solar_Panel": ["Energy"],
+                "Legendary_Solar_Panel": ["Energy"],
+                "Tesla_Coil": ["Energy"],
+                "Rare_Tesla_Coil": ["Energy"],
+                "Legendary_Tesla_Coil": ["Energy"],
+                "Nuclear_Power": ["Energy"],
+                "Power_Plant": ["Energy"]
             }
         };
 
@@ -724,12 +748,13 @@
 
                 if (building == null) continue;
 
-                let effectRadius = building.ProximityDist;
                 let effects = building.ProximityEmit.split(",");
+                let effectRadius = building.ProximityDist;
                 let effectValue = effectRadius;
                 let fixedEffectValue = 0;
-                if (building.ProximityEmit == "None") {
-                    effectRadius = 0;
+                if (cell.type === "Rare_Water_Pump") {
+                    effectValue = originalNFTProximityBonuses[cell.type][0];
+                    effectRadius = (originalNFTProximityBonuses[cell.type]).length;
                 }
                 if (cell.type === "888_Orb_of_Hope") {
                     effects = ['Dirty'];
@@ -749,47 +774,56 @@
                     effectValue = effectRadius;
                     fixedEffectValue = -999;
                 }
-                if (cell.type === "Rare_Water_Pump") {
-                    effectValue = originalNFTProximityBonuses[cell.type][0];
-                    effectRadius = (originalNFTProximityBonuses[cell.type]).length;
-                }
-                if (mazeSets.includes(cell.type)) {
-                    if (isFullMazeSets() == false) {
-                        effectValue = originalNFTProximityBonuses.Haunted_Maze[cell.type][0];
-                        effectRadius = (originalNFTProximityBonuses.Haunted_Maze[cell.type]).length;
-                        if (cell.type == "Haunted_Maze_-_Zone_3") {
-                            fixedEffectValue = effectValue;
-                        }
-                    } else {
-                        effectValue = boostedNftProximityBonuses.Haunted_Maze[cell.type][0];
-                        effectRadius = (boostedNftProximityBonuses.Haunted_Maze[cell.type]).length;
-                        if (cell.type == "Haunted_Maze_-_Zone_3") {
-                            fixedEffectValue = effectValue;
-                        }
-                    }
-                }
-                if (diamondWaterPump.includes(cell.type)) {
-                    if (isDiamondWaterPump() == false) {
-                        effectValue = originalNFTProximityBonuses.Diamond_Water_Pump[cell.type][0];
-                        effectRadius = (originalNFTProximityBonuses.Diamond_Water_Pump[cell.type]).length;
-                    } else {
-                        effectValue = boostedNftProximityBonuses.Diamond_Water_Pump[cell.type][0];
-                        effectRadius = (boostedNftProximityBonuses.Diamond_Water_Pump[cell.type]).length;
-                    }
-                }
-                if (diamondChargeStation.includes(cell.type)) {
-                    if (isDiamondChargeStation() == false) {
-                        effectValue = originalNFTProximityBonuses.Diamond_Charge_Station[cell.type][0];
-                        effectRadius = (originalNFTProximityBonuses.Diamond_Charge_Station[cell.type]).length;
-                    } else {
-                        effectValue = boostedNftProximityBonuses.Diamond_Charge_Station[cell.type][0];
-                        effectRadius = (boostedNftProximityBonuses.Diamond_Charge_Station[cell.type]).length;
-                    }
-                }
-                if (effectRadius == 0) continue;
 
                 for (const index in effects) {
-                    setTileProximity(i, effects[index], effectValue, effectRadius, fixedEffectValue);
+                    const proximity = effects[index];
+                    if (building.ProximityEmit == "None") {
+                        effectRadius = 0;
+                    }
+                    if (mazeSets.includes(cell.type)) {
+                        if (
+                            isFullMazeSets() == true &&
+                            boostedNftProximityEffects.Haunted_Maze[cell.type].includes(proximity) == true
+                        ) {
+                            effectValue = boostedNftProximityBonuses.Haunted_Maze[cell.type][0];
+                            effectRadius = (boostedNftProximityBonuses.Haunted_Maze[cell.type]).length;
+                            if (cell.type == "Haunted_Maze_-_Zone_3") {
+                                fixedEffectValue = effectValue;
+                            }
+                        } else {
+                            effectValue = originalNFTProximityBonuses.Haunted_Maze[cell.type][0];
+                            effectRadius = (originalNFTProximityBonuses.Haunted_Maze[cell.type]).length;
+                            if (cell.type == "Haunted_Maze_-_Zone_3") {
+                                fixedEffectValue = effectValue;
+                            }
+                        }
+                    }
+                    if (diamondWaterPump.includes(cell.type)) {
+                        if (
+                            isDiamondWaterPump() == true &&
+                            boostedNftProximityEffects.Diamond_Water_Pump[cell.type].includes(proximity) == true
+                        ) {
+                            effectValue = boostedNftProximityBonuses.Diamond_Water_Pump[cell.type][0];
+                            effectRadius = (boostedNftProximityBonuses.Diamond_Water_Pump[cell.type]).length;
+                        } else {
+                            effectValue = originalNFTProximityBonuses.Diamond_Water_Pump[cell.type][0];
+                            effectRadius = (originalNFTProximityBonuses.Diamond_Water_Pump[cell.type]).length;
+                        }
+                    }
+                    if (diamondChargeStation.includes(cell.type)) {
+                        if (
+                            isDiamondChargeStation() == true &&
+                            boostedNftProximityEffects.Diamond_Charge_Station[cell.type].includes(proximity) == true
+                        ) {
+                            effectValue = boostedNftProximityBonuses.Diamond_Charge_Station[cell.type][0];
+                            effectRadius = (boostedNftProximityBonuses.Diamond_Charge_Station[cell.type]).length;
+                        } else {
+                            effectValue = originalNFTProximityBonuses.Diamond_Charge_Station[cell.type][0];
+                            effectRadius = (originalNFTProximityBonuses.Diamond_Charge_Station[cell.type]).length;
+                        }
+                    }
+                    if (effectRadius == 0) continue;
+                    setTileProximity(i, proximity, effectValue, effectRadius, fixedEffectValue);
                 }
             }
         }
