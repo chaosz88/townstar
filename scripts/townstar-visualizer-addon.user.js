@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.6.0.4
+// @version      0.7.0.0
 // @description  Update citadelofthewind.
-// @author       Oizys, Kewlhwip, TruckTonka, LowCat
+// @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
 // @run-at       document-start
 // @grant        none
@@ -12,14 +12,34 @@
 (function() {
     'use strict';
 
-    let editVisualizerobserver = new MutationObserver(function(mutations) {
+    let editVisualizerObserver = new MutationObserver(function(mutations) {
         if (document.querySelector("#MainGrid") != null) {
-            editVisualizerobserver.disconnect();
+            editVisualizerObserver.disconnect();
             EditVisualizer();
-            SaveAsTownGuideEuCompatible();
         }
     });
-    editVisualizerobserver.observe(document, {attributes: true, childList: true , subtree: true});
+    editVisualizerObserver.observe(document, {attributes: true, childList: true , subtree: true});
+
+    let loadAfterTsvOperationObserver = new MutationObserver(function(mutations) {
+        if (document.querySelector('.TSV_Operation') != null) {
+            loadAfterTsvOperationObserver.disconnect();
+
+            var contentText = "";
+            const txtArea = createEmbedElm("<textarea id=\"display-txtArea\" rows=\"51\" cols=\"35\"></textarea>", "div-display-txtArea", "display-txtArea", contentText, null);
+            const newContainer = document.createElement('div');
+            newContainer.className = 'TSV_Operation_DisplayInfo';
+            newContainer.style.paddingTop = '.1rem';
+            newContainer.style.display = 'grid';
+            newContainer.style.gridColumn = '3/3';
+            newContainer.style.gridRow = '1/6';
+            newContainer.appendChild(txtArea);
+            document.querySelector('.maincontainer').appendChild(newContainer);
+
+            loadTownGuideEuSupport();
+            loadStagesSupport();
+        }
+    });
+    loadAfterTsvOperationObserver.observe(document, {attributes: true, childList: true , subtree: true});
 
     async function LoadJsonData(id) {
         let jsonData;
@@ -59,34 +79,428 @@
     AddCss('.recipeimage', 'width: auto; height: 23px; vertical-align: middle;');
     AddCss('.recipetimer', 'grid-column: 2 / 4;');
     AddCss('.cellcraft', 'position: absolute; z-index: 1; height: 24px; width: 24px; object-fit: contain; left: -2px; bottom: 0; -webkit-filter: drop-shadow(1px 1px 4px #666); filter: drop-shadow(1px 1px 4px #666);');
-    AddCss('.maincontainer','grid-template-rows: 352px 24px 24px 376px 48px!important;');
     AddCss('.categories','grid-template-columns: repeat(7, 1fr)!important;');
     AddCss('.buildingmenu','grid-template-rows: 0fr 6fr!important;');
     AddCss('#Fishing','filter: brightness(100);-filter-webkit: brightness(100);');
-    AddCss('#addon-version','position: absolute; right: 0; bottom: 0; padding: 10px;');
+    AddCss('#addon-version','position: absolute; right: 0; bottom: 0; padding: 5px; pointer-events: none;');
+    AddCss('#town-guide-eu-container input', 'margin-right: 4px;');
+    AddCss('#stages-body div.stage, #stage-control-container div, #add-stage-container div', 'display: inline-block; padding: 0px 8px; margin: 1px; font-size: 14px; font-weight: 400; line-height: 1.42857143; text-align: center; white-space: nowrap; vertical-align: middle; -ms-touch-action: manipulation; touch-action: manipulation; cursor: pointer; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; background-image: none; border: 1px solid transparent; border-radius: 4px; text-decoration: none;color: #000; background-color: #eee; border-color: #666;');
+    AddCss('#stages-body div.stage:hover, #stage-control-container div:hover, #add-stage-container div:hover', 'background-color: #ddd;');
+    AddCss('#stages-body div.stage.active', 'background-color: #333; color: #ccc;');
+    AddCss('#stage-info-container', 'height: 24px;');
+    AddCss('#stage-import-export-container input', 'margin-right: 4px;');
+    AddCss('.tileinfobody', 'padding-left: 2px!important;');
+    AddCss('#stage-control-container', 'text-align: right;');
+    AddCss('#stage-control-container div', 'width: 24px; height: 24px;padding:0;');
+    AddCss('#stage-delete, #add-stage-div', 'background-size: cover; background-origin: content-box; padding: 2px!important; background-repeat: no-repeat!important; width: 20px!important; height: 20px!important;');
+    AddCss('#stage-delete', 'background-image: url("https://cdn-icons-png.flaticon.com/512/1214/1214428.png")!important;');
+    AddCss('#add-stage-container', 'display: inline-block;');
+    AddCss('#add-stage-name', 'width: 115px;');
+    AddCss('#add-stage-div', 'background-image: url("https://cdn-icons-png.flaticon.com/512/2997/2997933.png")!important; width:16px!important; height:16px!important;');
 
-    function SaveAsTownGuideEuCompatible() {
-        const importExport = document.querySelector('.importexport');
-        const fileName = "TownGuideBuild";
-        const input = document.createElement('input');
-        input.type = "button";
-        input.value = "Save as town-guide.eu File";
-        input.onclick = function () {
-            const layout = GetTownGuideEuLayout(fileName);
+    const stages = [];
+
+    function loadStagesSupport() {
+        const stagesContainer = document.createElement('div');
+        stagesContainer.id = 'stages-container';
+
+        // stages header
+        const header = document.createElement('div');
+        header.id = 'stages-header';
+        header.textContent = 'Stages';
+        stagesContainer.appendChild(header);
+
+        // stages body
+        const stageBody = document.createElement('div');
+        stageBody.id = 'stages-body';
+
+        stagesContainer.appendChild(stageBody);
+        const mainContainer = document.querySelector('.maincontainer');
+        mainContainer.appendChild(stagesContainer);
+
+        const stageInfoContainer = document.createElement('div');
+        stageInfoContainer.id = 'stage-info-container';
+
+        // stage-manage-container
+        const stageManageContainer = document.createElement('div');
+        stageManageContainer.id = 'stage-manage-container';
+
+        const stageControlContainer = document.createElement('div');
+        stageControlContainer.id = 'stage-control-container';
+
+        const stageMoveUp = document.createElement('div');
+        stageMoveUp.id = 'stage-move-up';
+        stageMoveUp.textContent = '<';
+        stageMoveUp.onclick = function() {
+            MoveActiveStageUp();
+        };
+        stageControlContainer.appendChild(stageMoveUp);
+
+        const stageMoveDown = document.createElement('div');
+        stageMoveDown.id = 'stage-move-down';
+        stageMoveDown.textContent = '>';
+        stageMoveDown.onclick = function() {
+            MoveActiveStageDown();
+        };
+        stageControlContainer.appendChild(stageMoveDown);
+
+        const stageDelete = document.createElement('div');
+        stageDelete.id = 'stage-delete';
+        // stageDelete.textContent = 'D';
+        stageDelete.onclick = function() {
+            DeleteActiveStage();
+        };
+        // https://cdn-icons-png.flaticon.com/512/1214/1214428.png
+        stageControlContainer.appendChild(stageDelete);
+
+        stageManageContainer.appendChild(stageControlContainer);
+
+        const stageNameHeader = document.createElement('div');
+        stageNameHeader.id = 'stage-name-header';
+        stageNameHeader.textContent = 'Name';
+        stageManageContainer.appendChild(stageNameHeader);
+
+        const stageNameInput = document.createElement('input');
+        stageNameInput.id = 'stage-name';
+        stageNameInput.type = 'text';
+        stageNameInput.placeholder = 'Stage Name Here';
+        stageNameInput.onchange = function() {
+            UpdateActiveStageName(this.value);
+        };
+        stageManageContainer.appendChild(stageNameInput);
+
+        stageInfoContainer.appendChild(stageManageContainer);
+
+        // stage-import-export-container
+        const stageImportExportContainer = document.createElement('div');
+        stageImportExportContainer.id = 'stage-import-export-container';
+
+        const stageImportExportHeader = document.createElement('div');
+        stageImportExportHeader.id = 'stage-import-export-header';
+        stageImportExportHeader.textContent = 'Layout';
+        stageImportExportContainer.appendChild(stageImportExportHeader);
+
+        const stageImportExportInputText = document.createElement('input');
+        stageImportExportInputText.id = 'stage-import-export';
+        stageImportExportInputText.type = 'text';
+        stageImportExportInputText.placeholder = 'place here';
+        stageImportExportInputText.style.width = '65px';
+        stageImportExportContainer.appendChild(stageImportExportInputText);
+
+        const stageImportExportCopy = document.createElement('input');
+        stageImportExportCopy.id = 'stage-import-export-copy';
+        stageImportExportCopy.type = 'button';
+        stageImportExportCopy.value = 'Copy';
+        stageImportExportCopy.onclick = function() {
+            StageCopyToClipboard();
+        };
+        stageImportExportContainer.appendChild(stageImportExportCopy);
+
+        const stageImportExportLoad = document.createElement('input');
+        stageImportExportLoad.id = 'stage-import-export-load';
+        stageImportExportLoad.type = 'button';
+        stageImportExportLoad.value = 'Load';
+        stageImportExportLoad.onclick = function() {
+            StageImportGrid();
+        };
+        stageImportExportContainer.appendChild(stageImportExportLoad);
+
+        stageInfoContainer.appendChild(stageImportExportContainer);
+
+        document.querySelector('.tileinfobody').appendChild(stageInfoContainer);
+
+        HideStageInfo();
+
+        // initialize stage.
+        SetStageData(0, "First", grid.grid);
+        LoadStages();
+    }
+
+    function StageCopyToClipboard() {
+        const copyText = document.querySelector("#stage-import-export");
+        copyText.select();
+        // copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+        document.execCommand("copy");
+    }
+
+    function StageImportGrid() {
+        const index = GetActiveStageIndex();
+        const importExport = document.querySelector("#stage-import-export").value;
+        stages[index].grid = JSON.parse(importExport);
+        SetGridByStage(stages[index]);
+        renderGrid();
+    }
+
+    function MoveActiveStageUp() {
+        const index = GetActiveStageIndex();
+        if (
+            index >= 0
+            && index != 0
+        ) {
+            const previousIndex = index - 1;
+            const previousStage = stages[previousIndex];
+            const currentStage = stages[index];
+            stages[previousIndex] = currentStage;
+            stages[index] = previousStage;
+            LoadStages();
+            SetActiveStage(previousIndex);
+        }
+    }
+
+    function MoveActiveStageDown() {
+        const index = GetActiveStageIndex();
+        if (
+            index >= 0
+            && index < stages.length - 1
+        ) {
+            const nextIndex = index + 1;
+            const nextStage = stages[nextIndex];
+            const currentStage = stages[index];
+            stages[nextIndex] = currentStage;
+            stages[index] = nextStage;
+            LoadStages();
+            SetActiveStage(nextIndex);
+        }
+    }
+
+    function DeleteActiveStage() {
+        const index = GetActiveStageIndex();
+        if (
+            index >= 0
+            && index < stages.length - 1
+        ) {
+            stages.splice(index,1);
+            LoadStages();
+            let newIndex = index < stages.length - 1 ? index : stages.length - 1;
+            SetActiveStage(newIndex);
+        }
+    }
+
+    function LoadStages() {
+        const stageBody = document.querySelector('#stages-body');
+        ClearChildren(stageBody);
+        stages.forEach((stage, index) => {
+            const stageDiv = document.createElement('div');
+            stageDiv.id = 'stage-' + index;
+            stageDiv.classList.add('stage');
+            stageDiv.textContent = stage.name;
+            stageDiv.onclick = function() {
+                SetActiveStage(index);
+            };
+            stageBody.appendChild(stageDiv);
+        });
+        // Add new stage
+        const addStageContainer = document.createElement('div');
+        addStageContainer.id = 'add-stage-container';
+
+        const addStageName = document.createElement('input');
+        addStageName.id = 'add-stage-name';
+        addStageName.type = 'text';
+        addStageName.placeholder = 'New Stage Name';
+        addStageContainer.appendChild(addStageName);
+
+        const addStageButton = document.createElement('div');
+        addStageButton.id = 'add-stage-div';
+        addStageButton.onclick = function() {
+            AddNewStage();
+        };
+        addStageContainer.appendChild(addStageButton);
+
+        stageBody.appendChild(addStageContainer);
+
+        SetActiveStage(stages.length - 1);
+        updateExportGrid();
+    }
+
+    function AddNewStage() {
+        const name = document.querySelector('#add-stage-name').value;
+        if (name.length > 0) {
+            const index = GetActiveStageIndex();
+            const stage = {...stages[index]};
+            const newIndex = index + 1;
+            stage.name = name;
+            stages.splice(newIndex, 0, stage);
+            LoadStages();
+            SetActiveStage(newIndex);
+        }
+    }
+
+    function UpdateActiveStageName(name) {
+        if (name.length > 0) {
+            const index = GetActiveStageIndex();
+            stages[index].name = name;
+            LoadStages();
+            SetActiveStage(index);
+        }
+    }
+
+    function HideStageInfo() {
+        document.querySelector('#stage-info-container').style.display = "none";
+    }
+
+    function ShowStageInfo() {
+        document.querySelector('#stage-info-container').style.display = "";
+    }
+
+    function GetActiveStageIndex() {
+        let activeStageDiv = null;
+
+        const stageDivs = document.querySelectorAll('div.stage');
+        stageDivs.forEach(div => {
+            if (div.classList.contains('active')) {
+                activeStageDiv = div;
+            }
+        });
+
+        let index = 0;
+
+        if (activeStageDiv) {
+            index = parseInt(activeStageDiv.id.replace('stage-', ''));
+        } else {
+            index = stages.length - 1;
+        }
+
+        return index;
+    }
+
+    function SetActiveStage(index) {
+        const stageDivs = document.querySelectorAll('div.stage');
+        stageDivs.forEach(div => {
+            div.classList.remove('active');
+        });
+        document.querySelector('#stage-' + index).classList.add('active');
+
+        // clear tile info content
+        ClearChildren(document.querySelector('.tileinfopic'));
+        const tileInfoTile = document.querySelector('.tileinfotitle');
+        ClearChildren(tileInfoTile);
+        tileInfoTile.textContent = 'Stage Info';
+        ClearChildren(document.querySelector('.recipes'));
+
+        ShowStageInfo();
+        document.querySelector('#stage-name').value = stages[index].name;
+        document.querySelector('#stage-import-export').value = JSON.stringify(stages[index].grid);
+
+        SetGridByStage(stages[index]);
+        renderGrid();
+    }
+
+    function SetGridByStage(stage) {
+        grid.grid = stage.grid.map((cell) => {
+            let gridCell = {
+                type: cell.type,
+                edgeSatisfied: true,
+            };
+            if (cell.craft) {
+                gridCell.craft = cell.craft;
+            }
+            return gridCell;
+        });
+    }
+
+    function SetStageByGrid() {
+        const index = GetActiveStageIndex();
+
+        if (index >= 0) {
+            stages[index].grid = grid.grid.map((cell) => {
+                let gridCell = {
+                    type: cell.type,
+                };
+                if (cell.craft) {
+                    gridCell.craft = cell.craft;
+                }
+                return gridCell;
+            });
+        }
+    }
+
+    function ClearChildren(element) {
+        element.replaceChildren();
+    }
+
+    function ClearArray(array) {
+        array.length = 0;
+    }
+
+    function loadTownGuideEuSupport() {
+        const townGuideEuContainer = document.createElement('div');
+        townGuideEuContainer.id = 'town-guide-eu-container';
+
+        // town-guide.eu header
+        const header = document.createElement('div');
+        header.id = 'town-guide-eu-header';
+        header.textContent = 'town-guide.eu Compatible';
+        townGuideEuContainer.appendChild(header);
+
+        // town-guide.eu filename
+        const inputFilename = document.createElement('input');
+        inputFilename.id = "town-guide-eu-filename";
+        inputFilename.type = "text";
+        inputFilename.placeholder = "Filename";
+        inputFilename.value = "TownGuideBuild";
+        inputFilename.style.width = "115px";
+        townGuideEuContainer.appendChild(inputFilename);
+
+        // town-guide.eu save
+        const inputSave = document.createElement('input');
+        inputSave.id = "town-guide-eu-save";
+        inputSave.type = "button";
+        inputSave.value = "Save";
+        inputSave.onclick = function () {
+            const filename = document.querySelector('#town-guide-eu-filename').value;
+            const layout = GetTownGuideEuLayout(filename);
             const blob = new Blob(
                 [JSON.stringify(layout)],
                 { type: "text/plain;charset=utf-8" }
             );
             const url = URL.createObjectURL(blob);
             const file = document.createElement(`a`);
-            file.download = fileName + ".txt";
+            file.download = filename + ".txt";
             file.href = url;
             document.body.appendChild(file);
             file.click();
             file.remove();
             URL.revokeObjectURL(url);
         };
-        importExport.appendChild(input);
+        townGuideEuContainer.appendChild(inputSave);
+
+        // town-guide.eu load
+        const fileLoad = document.createElement('input');
+        fileLoad.id = "town-guide-eu-file-load";
+        fileLoad.type = "file";
+        fileLoad.accept = ".txt";
+        fileLoad.style.display = "none";
+        fileLoad.addEventListener('change', (event) => {
+            const fileList = event.target.files;
+            ReadTextFile(fileList[0]);
+        });
+        const inputLoad = document.createElement('input');
+        inputLoad.id = "town-guide-eu-load";
+        inputLoad.type = "button";
+        inputLoad.value = "Load";
+        inputLoad.onclick = function () {
+            fileLoad.click();
+        };
+        townGuideEuContainer.appendChild(inputLoad);
+
+        const mainContainer = document.querySelector('.maincontainer');
+        mainContainer.appendChild(townGuideEuContainer);
+    }
+
+    function ReadTextFile(file) {
+        // Check if the file is an image.
+        if (file.type && !file.type.startsWith('text/')) {
+            alert('File is not a text.', file.type, file);
+            console.log('File is not a text.', file.type, file);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener('load', (event) => {
+            const layout = JSON.parse(reader.result);
+            SetFromTownGuideEu(layout);
+        });
+        reader.readAsText(file);
     }
 
     function GetTownGuideEuLayout(fileName) {
@@ -95,51 +509,115 @@
         // Default layout structure
         const layout = {
             "borders": {
-                "North": grid.northborder == "none" ? "OpenWorld" : grid.northborder,
-                "East": grid.eastborder == "none" ? "OpenWorld" : grid.eastborder,
-                "South": grid.southborder == "none" ? "OpenWorld" : grid.southborder,
-                "West": grid.westborder == "none" ? "OpenWorld" : grid.westborder,
+                "North": GetTownGuideEuBorderType(grid.northborder),
+                "East": GetTownGuideEuBorderType(grid.eastborder),
+                "South": GetTownGuideEuBorderType(grid.southborder),
+                "West": GetTownGuideEuBorderType(grid.westborder),
             },
             "biome": validTownGuideEuBiomes.includes(biome) ? biome : "forest",
             "name": fileName,
-            "stages": [
-                {
-                    "index": 0,
-                    "bank": 0,
-                    "name": "First",
-                    "limits": {},
-                    "board": GetTownGuideEuBoard(),
-                }
-            ],
+            "stages": []
         };
+
+        stages.forEach((stage, index) => {
+            layout.stages[index] = {
+                "index": index,
+                "bank": 0,
+                "name": stage.name,
+                "limits": {},
+                "board": GetTownGuideEuBoard(stage),
+            };
+        });
 
         return layout
     }
 
-    function GetTownGuideEuBoard() {
+    function GetTownGuideEuBoard(stage) {
+        const grid = stage.grid;
         const board = {};
-        Object.keys(grid.grid).forEach(async key => {
+        Object.keys(grid).forEach(key => {
             const z = Math.floor(key / 16);
             const x = key - (z * 16);
             const boardKey = "(" + x + ".0,0.0," + z + ".0)";
-            board[boardKey] = { "type": grid.grid[key].type };
-            if (grid.grid[key].craft) {
+            board[boardKey] = { "type": grid[key].type };
+            if (grid[key].craft) {
                 board[boardKey].data = {
-                    "craft": grid.grid[key].craft,
+                    "craft": grid[key].craft,
                     "state": "Complete"
                 };
             }
         });
         return board;
     }
+
+    function GetTownGuideEuBorderType(visualizerBorder) {
+        return visualizerBorder == "none" ? "OpenWorld" : visualizerBorder;
+    }
+
+    function GetVisualizerBorderType(townGuideEuBorder) {
+        return townGuideEuBorder == "OpenWorld" ? "none" : townGuideEuBorder;
+    }
+
+    const townGuideEuNames = {
+        "Tomato": "Tomatoes",
+    };
+
+    function ConvertTownGuideEuName(name) {
+        return !townGuideEuNames[name] ? name : townGuideEuNames[name];
+    }
+
+    function SetFromTownGuideEu(townGuideEuLayoutObject) {
+        document.querySelector('#town-guide-eu-filename').value = townGuideEuLayoutObject.name;
+        grid.northborder = GetVisualizerBorderType(townGuideEuLayoutObject.borders.North);
+        grid.southborder = GetVisualizerBorderType(townGuideEuLayoutObject.borders.South);
+        grid.eastborder = GetVisualizerBorderType(townGuideEuLayoutObject.borders.East);
+        grid.westborder = GetVisualizerBorderType(townGuideEuLayoutObject.borders.West);
+        grid.defaultType = "Grass";
+        grid.grid = [];
+
+        ClearArray(stages);
+        const layoutStages = townGuideEuLayoutObject.stages;
+
+        layoutStages.forEach((stage, index) => {
+            const grid = [];
+            const board = stage.board;
+            for (let i = 0; i < dimension; i++) {
+                for (let j = 0; j < dimension; j++) {
+                    const cell = board[`(${j}.0,0.0,${i}.0)`];
+                    grid.push({
+                        type: ConvertTownGuideEuName(cell.type),
+                        craft: ConvertTownGuideEuName(cell.craft),
+                    });
+                }
+            }
+            SetStageData(index, stage.name, grid);
+        });
+
+        renderBorders();
+        LoadStages();
+    }
+
+    function SetStageData(index, name, grid) {
+        const filteredGrid = grid.map((cell) => {
+            let gridCell = { type: cell.type };
+            if (cell.craft) {
+                gridCell.craft = cell.craft;
+            }
+            return gridCell;
+        });
+        stages[index] = {
+            name: name,
+            grid: filteredGrid,
+        }
+    }
+
     // SCRIPT
     AddFunction('getCraftIcon(craft)',
         "return getFullURL(recipes[craft].FileUrl);"
     );
     AddFunction('setCellCraft(cellIndex, craft)',
         "grid.grid[cellIndex].craft = craft;" +
-        "renderCellCraft(cellIndex);" +
-        "updateExportGrid();"
+        "renderCellCraft(cellIndex);"
     );
     AddFunction('renderCellCraft(cellIndex)',
         "const cellElement = document.querySelector('#cell' + cellIndex);" +
@@ -171,6 +649,27 @@
     }
 
     async function EditVisualizer() {
+        copyToClipboard = function () {
+            const copyText = document.querySelector('#importexport');
+            copyText.select();
+            // copyText.setSelectionRange(0, 999999);
+            document.execCommand("copy");
+        }
+
+        // Overwrite selectBorder
+        selectBorder = function (border) {
+            var index = borderTypes.indexOf(grid[border]);
+
+            index++;
+            if (index > borderTypes.length - 1) index = 0;
+            var newBorderType = borderTypes[index];
+            grid[border] = newBorderType;
+            renderBorders();
+            renderGrid();
+            renderStats();
+            updateExportGrid();
+        }
+
         // Default maps
         maps = {
             "Forest": {
@@ -207,8 +706,16 @@
             return url;
         }
 
+        renderBorders = function () {
+            borders.forEach((bdr) => {
+                templateGrid[bdr] = grid[bdr];
+                $(`#${bdr}`).attr("class", `${bdr} ${grid[bdr]}`);
+            });
+        }
+
         // Overwrite renderGrid
         renderGrid = function (type) {
+console.log('renderGrid');
             resetAllPassive();
             calculateBorderEffects();
             calculatePassiveEffects();
@@ -226,48 +733,59 @@
                 setIconTitle(pageGridChild, cell);
                 setCellCraft(i, cell.craft);
             }
+            updateExportGrid();
             DisplayProximity();
         };
-        renderGrid();
+
+        // Overwrite selectCell
+        selectCell = function (cell) {
+            HideStageInfo();
+            selected = cell.id;
+            if (selectedBuilding != "") placeTile(selectedBuilding);
+            renderStats();
+            renderGrid();
+        }
 
         // Overwrite updateExportGrid
         updateExportGrid = function () {
+console.log('updateExportGrid');
             exportGrid.northborder = grid.northborder;
             exportGrid.southborder = grid.southborder;
             exportGrid.eastborder = grid.eastborder;
             exportGrid.westborder = grid.westborder;
-            exportGrid.grid = grid.grid.map((cell) => {
-                let gridCell = { type: cell.type };
-                if (cell.craft) {
-                    gridCell.craft = cell.craft;
-                }
-                return gridCell;
-                /*
-                return {
-                    type: cell.type,
-                };
-                */
-            });
-            $("#importexport").val(JSON.stringify(exportGrid));
+            SetStageByGrid();
+            exportGrid.stages = stages;
+            document.querySelector("#importexport").value = JSON.stringify(exportGrid);
         }
 
         // Overwrite importGrid
         importGrid = function () {
-            if ($("#importexport").val() != "") {
-                const importedGrid = JSON.parse($("#importexport").val());
+            const importExport = document.querySelector('#importexport');
+            if (importExport.value != "") {
+                const importedGrid = JSON.parse(importExport.value);
                 grid.northborder = importedGrid.northborder;
                 grid.southborder = importedGrid.southborder;
                 grid.eastborder = importedGrid.eastborder;
                 grid.westborder = importedGrid.westborder;
-                grid.grid = importedGrid.grid.map((cell) => {
-                    return {
-                        type: cell.type,
-                        craft: cell.craft,
-                        edgeSatisfied: true,
-                    };
-                });
-                renderBorders();
-                renderGrid();
+                ClearArray(stages);
+                if (importedGrid.grid.length <= 0) {
+                    importedGrid.stages.forEach((stage, index) => {
+                        SetStageData(index, stage.name, stage.grid);
+                    });
+                } else {
+                    const grid = importedGrid.grid.map((cell) => {
+                        let gridCell = {
+                            type: cell.type,
+                            edgeSatisfied: true,
+                        };
+                        if (cell.craft) {
+                            gridCell.craft = cell.craft;
+                        }
+                        return gridCell;
+                    });
+                    SetStageData(0, "First", grid);
+                }
+                LoadStages();
             }
         }
 
