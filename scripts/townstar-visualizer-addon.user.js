@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.2
+// @version      0.7.1.3
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -1154,7 +1154,7 @@
                     recipesHTML +=
                       `<div class="reciperow">` +
                         `<div class="recipeheader">` +
-                          `<input id="recipe_${rec}" name="recipe_${cell.type}" class="recipecraft" value="${rec}" type="radio"` + (cell.craft == rec ? ` checked` : ``) + ` onchange="setCellCraft(${cellIndex},'${rec}')"></input>` +
+                          `<input id="recipe_${rec}" name="recipe_${cell.type}" class="recipecraft" value="${rec}" type="radio"` + (cell.craft == rec ? ` checked` : ``) + ` onchange="setCellCraft(${cellIndex},'${rec}'); updateExportGrid();"></input>` +
                           `<label for="recipe_${rec}" class="recipetitle">` +
                             `<img class='recipeimage' src='${getCraftIcon(rec)}' />` +
                           `${getPrettyName(rec)}</label>` +
