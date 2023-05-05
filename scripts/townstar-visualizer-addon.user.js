@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.3
+// @version      0.7.1.4
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -54,6 +54,7 @@
             } else {
                 LoadStages();
             }
+            RightClickRemoveBuilding();
         }
     });
     loadAfterTsvOperationObserver.observe(document, {attributes: true, childList: true , subtree: true});
@@ -695,6 +696,22 @@
         stages[index] = {
             name: name,
             grid: filteredGrid,
+        }
+    }
+
+    // Right click remove building.
+    function RightClickRemoveBuilding() {
+        const cells = document.querySelectorAll(".cell");
+
+        for (let i = 0, n = cells.length; i < n; i++) {
+            const cell = cells[i];
+            cell.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                selected = cell.id;
+                placeTile("remove");
+                renderStats();
+                renderGrid();
+            });
         }
     }
 
@@ -1543,20 +1560,6 @@
 
         renderBuildingMenu();
         renderOverlaysOptions();
-
-        // Right click remove building.
-        const cells = document.querySelectorAll(".cell");
-
-        for (let i = 0, n = cells.length; i < n; i++) {
-            const cell = cells[i];
-            cell.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-                selected = cell.id;
-                placeTile("remove");
-                renderStats();
-                renderGrid();
-            });
-        }
 
         // Versioning
         const version = GM_info.script.version;
