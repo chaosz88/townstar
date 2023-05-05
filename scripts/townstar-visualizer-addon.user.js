@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.1
+// @version      0.7.1.2
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -837,7 +837,6 @@
         // Overwrite updateExportGrid
         updateExportGrid = function () {
             if (canUpdateLocalLayout) {
-console.log('updateExportGrid');
                 exportGrid.northborder = grid.northborder;
                 exportGrid.southborder = grid.southborder;
                 exportGrid.eastborder = grid.eastborder;
@@ -847,7 +846,6 @@ console.log('updateExportGrid');
                 SetStageByGrid();
                 exportGrid.stages = stages;
                 document.querySelector("#importexport").value = JSON.stringify(exportGrid);
-console.log('exportGrid',exportGrid);
 
                 GM_setValue(localLayoutName, exportGrid);
             }
@@ -864,13 +862,20 @@ console.log('exportGrid',exportGrid);
                 grid.westborder = importedGrid.westborder;
                 renderBorders();
                 grid.filename = importedGrid.filename;
+                // null will force later SetActiveStage.
+                grid.stageIndex = null;
                 ClearArray(stages);
-                if (importedGrid.grid.length <= 0) {
+                if (
+                    importedGrid.stages
+                    && importedGrid.stages.length > 0
+                ) {
+                    if (importedGrid.stages.length)
+                    grid.stageIndex = null;
                     importedGrid.stages.forEach((stage, index) => {
                         SetStageData(index, stage.name, stage.grid);
                     });
                 } else {
-                    const grid = importedGrid.grid.map((cell) => {
+                    const filteredGrid = importedGrid.grid.map((cell) => {
                         let gridCell = {
                             type: cell.type,
                             edgeSatisfied: true,
@@ -880,7 +885,7 @@ console.log('exportGrid',exportGrid);
                         }
                         return gridCell;
                     });
-                    SetStageData(0, "First", grid);
+                    grid.grid = filteredGrid;
                 }
                 LoadStages();
 
