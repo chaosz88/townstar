@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.4
+// @version      0.7.1.5
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -110,7 +110,7 @@
         const newLayoutButton = document.createElement('input');
         newLayoutButton.id = 'new-layout';
         newLayoutButton.type = 'button';
-        newLayoutButton.value = 'INIT';
+        newLayoutButton.value = 'RESET';
         newLayoutButton.onclick = function() {
             if (confirm("This will reset local cache layout, and start as a new layout.  Are you sure?") == true) {
                 NewLayout();
@@ -338,11 +338,12 @@
         const index = GetActiveStageIndex();
         if (
             index >= 0
-            && index < stages.length - 1
+            && index <= stages.length - 1
         ) {
             stages.splice(index,1);
             LoadStages();
-            let newIndex = index < stages.length - 1 ? index : stages.length - 1;
+            const newLastIndex = stages.length - 1;
+            const newIndex = index < newLastIndex ? index : newLastIndex;
             SetActiveStage(newIndex);
         }
     }
