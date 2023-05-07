@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.5
+// @version      0.7.1.6
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -445,12 +445,13 @@
             div.classList.remove('active');
         });
 
-        if (document.querySelector('#stage-' + index)) {
-            document.querySelector('#stage-' + index).classList.add('active');
-        }
-
-        if (index != grid.stageIndex) {
-            grid.stageIndex = index;
+        if (
+            index <= stages.length - 1
+            && index >= 0
+        ) {
+            if (document.querySelector('#stage-' + index)) {
+                document.querySelector('#stage-' + index).classList.add('active');
+            }
 
             // clear tile info content
             ClearChildren(document.querySelector('.tileinfopic'));
@@ -463,8 +464,12 @@
             document.querySelector('#stage-name').value = stages[index].name;
             document.querySelector('#stage-import-export').value = JSON.stringify(stages[index].grid);
 
-            SetGridByStage(stages[index]);
-            renderGrid();
+            if (index != grid.stageIndex) {
+                grid.stageIndex = index;
+
+                SetGridByStage(stages[index]);
+                renderGrid();
+            }
         }
     }
 
