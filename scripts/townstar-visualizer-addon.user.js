@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.8
+// @version      0.7.1.9
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -1430,7 +1430,10 @@
 
                 for (const index in effects) {
                     const proximity = effects[index];
-                    if (building.ProximityEmit == "None") {
+                    if (
+                        building.ProximityEmit == "None"
+                        && fixedEffectValue == 0
+                    ) {
                         effectRadius = 0;
                     }
                     if (mazeSets.includes(cell.type)) {
