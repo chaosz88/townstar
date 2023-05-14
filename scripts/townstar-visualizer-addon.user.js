@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.1.12
+// @version      0.7.1.13
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -662,14 +662,6 @@
         return !correctionNames[name] ? name : correctionNames[name];
     }
 
-    const townGuideEuNames = {
-        "Tomato": "Tomatoes",
-    };
-
-    function ConvertTownGuideEuName(name) {
-        return !townGuideEuNames[name] ? name : townGuideEuNames[name];
-    }
-
     function SetFromTownGuideEu(townGuideEuLayoutObject) {
         grid.northborder = GetVisualizerBorderType(townGuideEuLayoutObject.borders.North);
         grid.southborder = GetVisualizerBorderType(townGuideEuLayoutObject.borders.South);
@@ -1150,15 +1142,12 @@
         placeTile = function (type) {
             const id = getCellIndex();
             if (id != null) {
-                if (grid.grid[id].type != type) {
-                    if (grid.grid[id].type == type || type == "remove") {
-                        grid.grid[id].type = grid.defaultType;
-                        grid.grid[id].edgeSatisfied = true;
-                    } else {
-                        grid.grid[id].type = type;
-                    }
+                delete grid.grid[id].craft;
+                if (grid.grid[id].type == type || type == "remove") {
+                    grid.grid[id].type = grid.defaultType;
+                    grid.grid[id].edgeSatisfied = true;
                 } else {
-                    delete grid.grid[id].craft;
+                    grid.grid[id].type = type;
                 }
                 renderGrid();
                 updateExportGrid();
