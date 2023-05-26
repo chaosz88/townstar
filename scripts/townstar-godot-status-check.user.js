@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.1.1
 // @description  Alarm sound when Spinning T.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
 // @match        *://*.gala.games/games/town-star*
+// @match        *://*.gala.com/games/tsg-playtest*
+// @match        *://*.gala.games/games/tsg-playtest*
 // @match        *://tsf-client.gala.com/*
 // @grant        none
 // @run-at       document-start
@@ -64,7 +66,6 @@
         if (
             document.querySelector('#status')
         ) {
-console.log('#status detected');
             postObserver.disconnect();
             PostMessageToGala();
             console.log('Town Star Godot - Status Check Post loaded.');
@@ -111,7 +112,6 @@ console.log('#status detected');
     }
 
     function CheckFrame() {
-console.log('CheckFrame');
         let gameAppFrame = Game.app.frame;
         if (
             frame &&
