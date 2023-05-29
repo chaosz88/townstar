@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.2
+// @version      0.2.0.3
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -662,12 +662,16 @@ console.log('Spinning T solved.');
     async function SimulateClick(element, x, y) {
 console.log('SimulateClick');
 console.log('x = ',x,', y = ',y);
+        element.blur();
+        await delay(100);
+        element.focus();
+        await delay(100);
         element.dispatchEvent(new MouseEvent("mousedown", {
             clientX: x,
             clientY: y,
             bubbles: true
         }));
-        await delay(10);
+        await delay(100);
         element.dispatchEvent(new MouseEvent("mouseup", {
             clientX: x,
             clientY: y,
