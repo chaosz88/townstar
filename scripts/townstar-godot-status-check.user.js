@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.3
+// @version      0.2.0.4
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -49,7 +49,10 @@
     const notTownPlayingCheckMs = 60000; // Default 1 minute.
     // Default 5 minutes waiting time, this will be ignored if town was found.
     const delayCheckTownPlayingMs = 300000;
+    const refreshCheckMs = 60000;
+
     let townStopTimestamp = 0;
+    let alarmStartTimestamp = 0;
     let delayCheckTownPlayTimestamp = 0;
     let spinningTCount = 0;
     let spinningTActive = false;
@@ -272,12 +275,25 @@ console.log('Town stop?');
                 townStopTimestamp = Date.now();
             } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
                 PlayAlarmSound();
+                if (alarmStartTimestamp <= 0) {
+                    alarmStartTimestamp = Date.now();
+                }
             }
         } else {
             isTownPlayed = true;
             allowPlayAlarm = true;
             townStopTimestamp = 0;
             delayCheckTownPlayTimestamp = 0;
+            alarmStartTimestamp = 0;
+        }
+
+        // Alarm sound 60 seconds (1 minute), then it will auto reload the game.
+        if (
+            alarmStartTimestamp > 0 &&
+            (Date.now() - alarmStartTimestamp) > refreshCheckMs
+        ) {
+console.log('RELOAD!');
+            ReloadGame();
         }
     }
 
@@ -481,7 +497,6 @@ console.log('Spinning T solved.');
     async function IsSpinningT() {
         const coordinate = GetCoordinateCanvas();
         const edges = await GetCoordinateFourEdgesRgb(coordinate);
-// LogTargetAndEdges(baseRgb.SPINNING_T, edges);
 
         return VerifyFourEdgesRgbMatching(baseRgb.SPINNING_T, edges);
     }
