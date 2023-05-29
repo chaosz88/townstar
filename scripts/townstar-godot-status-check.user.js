@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.4
+// @version      0.2.0.5
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -179,7 +179,7 @@
             const spinningTStatus = document.createElement('div');
             spinningTStatus.id = 'spinning-t-status';
             spinningTStatus.style.cssText = 'position: absolute; z-index: 9; bottom: 0; margin-left: 10px; opacity: 0.5; pointer-events: none;';
-            spinningTStatus.textContent = 'Spinning-T Detection Active';
+            spinningTStatus.textContent = 'Spinning-T Detection Active v' + GM_info.script.version;
             document.querySelector('#app').prepend(spinningTStatus);
 
             const spinningTCountContainer = document.createElement('div');
