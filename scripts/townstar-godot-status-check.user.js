@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.0
+// @version      0.2.0.1
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -64,6 +64,8 @@
     let delayCheckTownPlayTimestamp = 0;
     let spinningTCount = 0;
     let spinningTActive = false;
+    let isTownPlayed = false;
+    let allowPlayAlarm = false;
 
     const baseRgb = {
         TOWN_PLAYING: { r: 213, g: 225, b: 216 },
@@ -244,8 +246,10 @@
     }
 
     function PlayAlarmSound() {
-        const alarmAudio = document.querySelector('#alarm-audio');
-        alarmAudio.play();
+        if (allowPlayAlarm) {
+            const alarmAudio = document.querySelector('#alarm-audio');
+            alarmAudio.play();
+        }
     }
 
     function ReloadGame() {
@@ -270,6 +274,25 @@
         setInterval(CheckTownPlaying, townPlayingCheckMs);
     }
 
+    // If over 60 seconds fail CheckTownPlaying, play alarm sound.
+    async function CheckTownPlaying() {
+        const isTownPlaying = await IsTownPlaying();
+        if (!isTownPlaying) {
+console.log('Town stop?');
+            if (townStopTimestamp <= 0) {
+                townStopTimestamp = Date.now();
+            } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
+                PlayAlarmSound();
+            }
+        } else {
+            isTownPlayed = true;
+            allowPlayAlarm = true;
+            townStopTimestamp = 0;
+            delayCheckTownPlayTimestamp = 0;
+        }
+    }
+
+    /*
     // Start new game, will have a 300 seconds (5 minute) delay in playing alarm sound.
     // If playing town detect, the 300 seconds delay will be removed.
     // If over 60 seconds fail CheckTownPlaying, play alarm sound.
@@ -295,6 +318,7 @@ console.log('Town stop?');
             delayCheckTownPlayTimestamp = 0;
         }
     }
+    */
 
     async function IsTownPlaying() {
         const townPlayingCoordinate = GetCoordinateTownPlaying();
