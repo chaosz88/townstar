@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.1
+// @version      0.2.0.2
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -19,24 +19,13 @@
 
     // [IMPORTANT READ]
     // This script try to detect 4 edges of the game screen, if all the same grey color of spinning T, then it play alarm sound.
-    // If no "Grey-Face Detection Active" display at bottom left.
+    // If no "Spinning-T Detection Active" display at bottom left.
     // Use F5 to refresh to Town Star game (not start Town Star game from gala.games website).
 
-    // If grey face show up, after some seconds (within 60 seconds) it will auto reload the Town Star game.
+    // If grey face show up, after some seconds (around 60+ seconds) it will sound alarm.
     // If Town Star game is stopped (screen is blocked, or screen is blue / black),
     //   after some seconds (within 20 seconds) it will play Alarm sound repeatedly,
     //   until the game is resume (blue / black screen will need to terminate all browser process and start game again).
-
-    // [How does it work?]
-    // Town Star game is running in an iframe inside a webpage actually.
-    // So I write script to be loaded from Tampermonkey, that:
-    // 1. Add a "listening" script in "webpage".
-    // 2. Add a "broadcasting" script in "iframe".
-    // 3. "listening" script will set a count down of 1 minute, to refresh the Town Star game.
-    // 3. "broadcasting" script will continuously broadcast "I am fine" to "listening".
-    // 4. If "listening" script received the broadcast, then the "listening" script will stop previous count down, and start new count down to refresh the game.
-    // 5. If grey-face happen, "broadcasting" script will not be able to broadcast.
-    // 6. So "listening" script will refresh the game when no broadcast received (Grey Face happened), when count down of 1 minute completed.
 
     // postObserver first, then reloadObserver!
 
@@ -649,7 +638,7 @@ console.log('Spinning T solved.');
         ) {
             extraLeftWidth = 0;
             extraBottomHeight = 0;
-            if ((baseHeight / canvasWidth) < baseRatio) {
+            if ((canvasHeight / canvasWidth) < baseRatio) {
                 effectiveCanvasHeight = canvasHeight;
                 effectiveCanvasWidth = effectiveCanvasHeight / baseRatio;
 
