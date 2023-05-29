@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.6
+// @version      0.2.0.7
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -527,6 +527,8 @@ console.log('Spinning T solved.');
         return buffer.toDataURL();
     }
 
+    // https://stackoverflow.com/questions/2541481/get-average-color-of-image-via-javascript
+    // Credit: James
     async function GetAverageRgb(image) {
         let blockSize = 5, // only visit every 5 pixels
             defaultRGB = { r: 0, g: 0, b: 0 }, // for non-supporting envs
