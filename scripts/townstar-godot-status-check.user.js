@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.9
+// @version      0.2.0.10
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -668,26 +668,24 @@ console.log('Spinning T solved.');
     function GetCoordinate(baseCoordinate, align = '', verticalAlign = '') {
         const canvasWidth = GetCanvasWidth(),
               canvasHeight = GetCanvasHeight();
-        let extraLeftWidth = parseInt((canvasWidth > baseWidth) ? canvasWidth - baseWidth : 0),
-            extraBottomHeight = parseInt((canvasWidth < baseWidth) ? (baseHeight - (canvasWidth * baseRatio)) : 0),
+        let extraLeftWidth = 0,
             extraTopHeight = 0;
-        let effectiveCanvasWidth = canvasWidth - extraLeftWidth,
-            effectiveCanvasHeight = canvasHeight - extraBottomHeight;
+        let effectiveCanvasWidth = canvasWidth,
+            effectiveCanvasHeight = canvasHeight;
         if (
             align === UiAlign.LEFT ||
-            align === UiAlign.CENTER
+            align === UiAlign.CENTER ||
+            align === UiAlign.RIGHT
         ) {
-            extraLeftWidth = 0;
-            extraBottomHeight = 0;
             if ((canvasHeight / canvasWidth) < baseRatio) {
-                effectiveCanvasHeight = canvasHeight;
                 effectiveCanvasWidth = effectiveCanvasHeight / baseRatio;
 
                 if (align === UiAlign.CENTER) {
-                    extraLeftWidth = parseInt((canvasWidth - effectiveCanvasWidth) / 2);
+                    extraLeftWidth = (canvasWidth - effectiveCanvasWidth) / 2;
+                } else if (align === UiAlign.RIGHT) {
+                    extraLeftWidth = canvasWidth - effectiveCanvasWidth;
                 }
             } else {
-                effectiveCanvasWidth = canvasWidth;
                 effectiveCanvasHeight = effectiveCanvasWidth * baseRatio;
             }
         }
@@ -697,10 +695,10 @@ console.log('Spinning T solved.');
         }
 
         return {
-            x1: parseInt(baseCoordinate.x1 * effectiveCanvasWidth / baseWidth) + extraLeftWidth,
-            y1: parseInt(baseCoordinate.y1 * effectiveCanvasHeight / baseHeight) + extraTopHeight,
-            x2: parseInt(baseCoordinate.x2 * effectiveCanvasWidth / baseWidth) + extraLeftWidth,
-            y2: parseInt(baseCoordinate.y2 * effectiveCanvasHeight / baseHeight) + extraTopHeight
+            x1: parseInt((baseCoordinate.x1 * effectiveCanvasWidth / baseWidth) + extraLeftWidth),
+            y1: parseInt((baseCoordinate.y1 * effectiveCanvasHeight / baseHeight) + extraTopHeight),
+            x2: parseInt((baseCoordinate.x2 * effectiveCanvasWidth / baseWidth) + extraLeftWidth),
+            y2: parseInt((baseCoordinate.y2 * effectiveCanvasHeight / baseHeight) + extraTopHeight)
         };
     }
 
@@ -773,7 +771,7 @@ console.log('x = ',x,', y = ',y);
             y2: 173
         };
 
-        return GetCoordinate(baseCoordinate);
+        return GetCoordinate(baseCoordinate, UiAlign.RIGHT);
     }
 
     function GetCoordinateCasualPlayButton() {
