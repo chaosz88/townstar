@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.8
+// @version      0.2.0.9
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -46,6 +46,7 @@
     const spinningTCheckMs = 5000;
     const homePageCheckMs = 5000;
     const townPlayingCheckMs = 5000;
+    const townPopUpMessageCheckMs = 5000;
     const notTownPlayingCheckMs = 60000; // Default 1 minute.
     // Default 5 minutes waiting time, this will be ignored if town was found.
     const delayCheckTownPlayingMs = 300000;
@@ -64,7 +65,8 @@
         SPINNING_T: { r: 76, g: 76, b: 76 },
         SERVER_BUTTON_ACTIVE: { r: 250, g: 138, b: 57 },
         SERVER_BUTTON_INACTIVE: { r: 153, g: 153, b: 153 },
-        SERVER_BUTTON_RESULT: { r: 72, g: 145, b: 235 }
+        SERVER_BUTTON_RESULT: { r: 72, g: 145, b: 235 },
+        BUTTON_NORMAL: { r: 72, g: 145, b: 235 }
     };
 
     const server = {
@@ -79,12 +81,19 @@
         CASUAL: 'Casual',
         COMPETITION1: 'Act.Comp 1',
         COMPETITION2: 'Act.Comp 2',
-    }
+    };
 
     const UiAlign = {
         LEFT: 'L',
-        CENTER: 'C'
-    }
+        CENTER: 'C',
+        RIGHT: 'R'
+    };
+
+    const UiVerticalAlign = {
+        TOP: 'T',
+        MIDDLE: 'M',
+        BOTTOM: 'B'
+    };
 
     // Default to active competition 1 server.
     let selectedServer = server.COMPETITION1;
@@ -264,6 +273,7 @@
         setInterval(CheckSpinningT, spinningTCheckMs);
         delayCheckTownPlayTimestamp = Date.now();
         setInterval(CheckTownPlaying, townPlayingCheckMs);
+        setInterval(CheckTownPopUpMessage, townPopUpMessageCheckMs);
     }
 
     // If over 60 seconds fail CheckTownPlaying, play alarm sound.
@@ -293,7 +303,7 @@ console.log('Town stop?');
             (Date.now() - alarmStartTimestamp) > refreshCheckMs
         ) {
 console.log('RELOAD!');
-            // ReloadGame();
+            ReloadGame();
         }
     }
 
@@ -329,6 +339,19 @@ console.log('Town stop?');
         const townPlayingCoordinate = GetCoordinateTownPlaying();
         const townPlayingEdges = await GetCoordinateFourEdgesRgb(townPlayingCoordinate);
         return VerifyFourEdgesRgbMatching(baseRgb.TOWN_PLAYING, townPlayingEdges);
+    }
+    async function CheckTownPopUpMessage() {
+        const isTownPopUpMessage = await IsTownPopUpMessage();
+        if (isTownPopUpMessage) {
+            const townInGamePopUpOkButtonCoordinate = GetCoordinateTownInGamePopUpOkButton();
+            SimulateClickFromCoordinate(townInGamePopUpOkButtonCoordinate);
+        }
+    }
+
+    async function IsTownPopUpMessage() {
+        const townInGamePopUpOkButtonCoordinate = GetCoordinateTownInGamePopUpOkButton();
+        const townInGamePopUpOkButtonEdges = await GetCoordinateFourEdgesRgb(townInGamePopUpOkButtonCoordinate);
+        return VerifyFourEdgesRgbMatching(baseRgb.BUTTON_NORMAL, townInGamePopUpOkButtonEdges);
     }
 
     async function CheckHomePage() {
@@ -477,7 +500,7 @@ console.log('Spinning T detected!');
             }
 
             const coordinate = GetCoordinateCanvas(UiAlign.LEFT);
-            SimulateClickFromCoordinate(coordinate);
+            SimulateClickFromCoordinate(coordinate, true);
         } else {
             if (spinningTActive === true) {
                 spinningTActive = false;
@@ -642,11 +665,12 @@ console.log('Spinning T solved.');
         return canvas?.height || 0;
     }
 
-    function GetCoordinate(baseCoordinate, align = '') {
+    function GetCoordinate(baseCoordinate, align = '', verticalAlign = '') {
         const canvasWidth = GetCanvasWidth(),
               canvasHeight = GetCanvasHeight();
         let extraLeftWidth = parseInt((canvasWidth > baseWidth) ? canvasWidth - baseWidth : 0),
-            extraBottomHeight = parseInt((canvasWidth < baseWidth) ? (baseHeight - (canvasWidth * baseRatio)) : 0);
+            extraBottomHeight = parseInt((canvasWidth < baseWidth) ? (baseHeight - (canvasWidth * baseRatio)) : 0),
+            extraTopHeight = 0;
         let effectiveCanvasWidth = canvasWidth - extraLeftWidth,
             effectiveCanvasHeight = canvasHeight - extraBottomHeight;
         if (
@@ -668,20 +692,26 @@ console.log('Spinning T solved.');
             }
         }
 
+        if (verticalAlign === UiVerticalAlign.MIDDLE) {
+            extraTopHeight = parseInt((canvasHeight - effectiveCanvasHeight) / 2);
+        }
+
         return {
             x1: parseInt(baseCoordinate.x1 * effectiveCanvasWidth / baseWidth) + extraLeftWidth,
-            y1: parseInt(baseCoordinate.y1 * effectiveCanvasHeight / baseHeight),
+            y1: parseInt(baseCoordinate.y1 * effectiveCanvasHeight / baseHeight) + extraTopHeight,
             x2: parseInt(baseCoordinate.x2 * effectiveCanvasWidth / baseWidth) + extraLeftWidth,
-            y2: parseInt(baseCoordinate.y2 * effectiveCanvasHeight / baseHeight)
+            y2: parseInt(baseCoordinate.y2 * effectiveCanvasHeight / baseHeight) + extraTopHeight
         };
     }
 
-    async function SimulateClick(element, x, y) {
+    async function SimulateClick(element, x, y, refocus = false) {
 console.log('SimulateClick');
 console.log('x = ',x,', y = ',y);
-        element.blur();
-        await delay(100);
-        element.focus();
+        if (refocus) {
+            element.blur();
+            await delay(100);
+            element.focus();
+        }
         await delay(100);
         element.dispatchEvent(new MouseEvent("mousedown", {
             clientX: x,
@@ -696,8 +726,8 @@ console.log('x = ',x,', y = ',y);
         }));
     }
 
-    async function SimulateClickFromCoordinate(coordinate) {
-        await SimulateClick(GetCanvasElement(), ((coordinate.x1 + coordinate.x2) / 2), ((coordinate.y1 + coordinate.y2) / 2));
+    async function SimulateClickFromCoordinate(coordinate, refocus = false) {
+        await SimulateClick(GetCanvasElement(), ((coordinate.x1 + coordinate.x2) / 2), ((coordinate.y1 + coordinate.y2) / 2), refocus);
     }
 
     function GetCoordinateCanvas(align = '') {
@@ -821,6 +851,17 @@ console.log('x = ',x,', y = ',y);
         };
 
         return GetCoordinate(baseCoordinate, UiAlign.CENTER);
+    }
+
+    function GetCoordinateTownInGamePopUpOkButton() {
+        const baseCoordinate = {
+            x1: 390,
+            y1: 800,
+            x2: 860,
+            y2: 865
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
     }
 
     async function ShowAndHideCoordinates(coordinate) {
