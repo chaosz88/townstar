@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.11
+// @version      0.2.0.12
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -288,23 +288,22 @@
             allowPlayAlarm = false;
             townStopTimestamp = 0;
             alarmStartTimestamp = 0;
-        } else {
-            const isTownPlaying = await IsTownPlaying();
-            if (!isTownPlaying) {
-                console.log('Town stop?');
-                if (townStopTimestamp <= 0) {
-                    townStopTimestamp = Date.now();
-                } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
-                    PlayAlarmSound();
-                    if (alarmStartTimestamp <= 0) {
-                        alarmStartTimestamp = Date.now();
-                    }
+        }
+        const isTownPlaying = await IsTownPlaying();
+        if (!isTownPlaying) {
+            console.log('Town stop?');
+            if (townStopTimestamp <= 0) {
+                townStopTimestamp = Date.now();
+            } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
+                PlayAlarmSound();
+                if (alarmStartTimestamp <= 0) {
+                    alarmStartTimestamp = Date.now();
                 }
-            } else {
-                allowPlayAlarm = true;
-                townStopTimestamp = 0;
-                alarmStartTimestamp = 0;
             }
+        } else {
+            allowPlayAlarm = true;
+            townStopTimestamp = 0;
+            alarmStartTimestamp = 0;
         }
 
         // Alarm sound 60 seconds (1 minute), then it will auto reload the game.
@@ -318,7 +317,7 @@ console.log('RELOAD!');
     }
 
     function IsGameLoading() {
-        return document.querySelector("#ts-loading-main[class~='animate-in']");
+        return document.querySelector("#ts-loading-main[class~='animate-in']") !== null;
     }
 
     async function IsTownPlaying() {
