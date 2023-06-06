@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.10
+// @version      0.2.0.11
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -18,6 +18,12 @@
     'use strict';
 
     // [IMPORTANT READ]
+    // Don't forget it need a manual refresh after launch the game.
+    // Label "Spinning-T Detection Active" at bottom left of screen to confirm it is monitoring.
+    //
+    // To allow alarm sound and auto go back server after Spinning T happen,
+    // you have to make sure your game is always FOCUSED (before you leave your computer, mouse click once on the Town Star game screen)
+    //
     // This script try to detect 4 edges of the game screen, if all the same grey color of spinning T, then it play alarm sound.
     // If no "Spinning-T Detection Active" display at bottom left.
     // Use F5 to refresh to Town Star game (not start Town Star game from gala.games website).
@@ -54,10 +60,8 @@
 
     let townStopTimestamp = 0;
     let alarmStartTimestamp = 0;
-    let delayCheckTownPlayTimestamp = 0;
     let spinningTCount = 0;
     let spinningTActive = false;
-    let isTownPlayed = false;
     let allowPlayAlarm = false;
 
     const baseRgb = {
@@ -66,7 +70,9 @@
         SERVER_BUTTON_ACTIVE: { r: 250, g: 138, b: 57 },
         SERVER_BUTTON_INACTIVE: { r: 153, g: 153, b: 153 },
         SERVER_BUTTON_RESULT: { r: 72, g: 145, b: 235 },
-        BUTTON_NORMAL: { r: 72, g: 145, b: 235 }
+        BUTTON_NORMAL: { r: 72, g: 145, b: 235 },
+        CLOSE_BUTTON: { r: 104, g: 161, b: 225 },
+        CASH_ICON: { r: 119, g: 164, b: 66 },
     };
 
     const server = {
@@ -271,30 +277,34 @@
     async function MonitorGodot() {
         setInterval(CheckHomePage, homePageCheckMs);
         setInterval(CheckSpinningT, spinningTCheckMs);
-        delayCheckTownPlayTimestamp = Date.now();
         setInterval(CheckTownPlaying, townPlayingCheckMs);
         setInterval(CheckTownPopUpMessage, townPopUpMessageCheckMs);
     }
 
     // If over 60 seconds fail CheckTownPlaying, play alarm sound.
     async function CheckTownPlaying() {
-        const isTownPlaying = await IsTownPlaying();
-        if (!isTownPlaying) {
-console.log('Town stop?');
-            if (townStopTimestamp <= 0) {
-                townStopTimestamp = Date.now();
-            } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
-                PlayAlarmSound();
-                if (alarmStartTimestamp <= 0) {
-                    alarmStartTimestamp = Date.now();
-                }
-            }
-        } else {
-            isTownPlayed = true;
-            allowPlayAlarm = true;
+        const isGameLoading = IsGameLoading();
+        if (isGameLoading) {
+            allowPlayAlarm = false;
             townStopTimestamp = 0;
-            delayCheckTownPlayTimestamp = 0;
             alarmStartTimestamp = 0;
+        } else {
+            const isTownPlaying = await IsTownPlaying();
+            if (!isTownPlaying) {
+                console.log('Town stop?');
+                if (townStopTimestamp <= 0) {
+                    townStopTimestamp = Date.now();
+                } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
+                    PlayAlarmSound();
+                    if (alarmStartTimestamp <= 0) {
+                        alarmStartTimestamp = Date.now();
+                    }
+                }
+            } else {
+                allowPlayAlarm = true;
+                townStopTimestamp = 0;
+                alarmStartTimestamp = 0;
+            }
         }
 
         // Alarm sound 60 seconds (1 minute), then it will auto reload the game.
@@ -307,39 +317,27 @@ console.log('RELOAD!');
         }
     }
 
-    /*
-    // Start new game, will have a 300 seconds (5 minute) delay in playing alarm sound.
-    // If playing town detect, the 300 seconds delay will be removed.
-    // If over 60 seconds fail CheckTownPlaying, play alarm sound.
-    async function CheckTownPlaying() {
-        const isTownPlaying = await IsTownPlaying();
-        if (!isTownPlaying) {
-console.log('Town stop?');
-            if (townStopTimestamp <= 0) {
-                townStopTimestamp = Date.now();
-            } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
-                if (
-                    delayCheckTownPlayTimestamp <= 0 ||
-                    (
-                        delayCheckTownPlayTimestamp > 0 &&
-                        (Date.now() - delayCheckTownPlayTimestamp) > delayCheckTownPlayingMs
-                    )
-                ) {
-                    PlayAlarmSound();
-                }
-            }
-        } else {
-            townStopTimestamp = 0;
-            delayCheckTownPlayTimestamp = 0;
-        }
+    function IsGameLoading() {
+        return document.querySelector("#ts-loading-main[class~='animate-in']");
     }
-    */
 
     async function IsTownPlaying() {
         const townPlayingCoordinate = GetCoordinateTownPlaying();
         const townPlayingEdges = await GetCoordinateFourEdgesRgb(townPlayingCoordinate);
-        return VerifyFourEdgesRgbMatching(baseRgb.TOWN_PLAYING, townPlayingEdges);
+        return VerifyFourEdgesRgbMatching(baseRgb.TOWN_PLAYING, townPlayingEdges) ||
+            IsCustomizeAutoSellPage();
     }
+
+    async function IsCustomizeAutoSellPage() {
+        const customizeAutoSellPageCloseButtonCoordinate = GetCoordinateCustomizeAutoSellPageCloseButton();
+        const customizeAutoSellPageCloseButtonrgb = await GetCoordinateRgb(customizeAutoSellPageCloseButtonCoordinate);
+        const customizeAutoSellPageCashIconCoordinate = GetCoordinateCustomizeAutoSellPageCashIcon();
+        const customizeAutoSellPageCashIconRgb = await GetCoordinateRgb(customizeAutoSellPageCashIconCoordinate);
+
+        return VerifyRgbMatching(baseRgb.CLOSE_BUTTON, customizeAutoSellPageCloseButtonrgb) &&
+            VerifyRgbMatching(baseRgb.CASH_ICON, customizeAutoSellPageCashIconRgb);
+    }
+
     async function CheckTownPopUpMessage() {
         const isTownPopUpMessage = await IsTownPopUpMessage();
         if (isTownPopUpMessage) {
@@ -606,8 +604,8 @@ console.log('Spinning T solved.');
 
     async function GetCoordinateFourEdgesRgb(coordinate) {
         const canvas = GetCanvasElement(),
-              edgeWidth = 10,
-              edgeHeight = 10;
+              edgeWidth = 5,
+              edgeHeight = 5;
         const edges = [];
         edges.push({ rgb: await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x1, coordinate.y1, edgeWidth, edgeHeight)) });
         edges.push({ rgb: await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x2 - edgeWidth, coordinate.y1, edgeWidth, edgeHeight)) });
@@ -615,6 +613,18 @@ console.log('Spinning T solved.');
         edges.push({ rgb: await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x2 - edgeWidth, coordinate.y2 - edgeHeight, edgeWidth, edgeHeight)) });
 
         return edges;
+    }
+
+    async function GetCoordinateRgb(coordinate) {
+        const canvas = GetCanvasElement();
+
+        return await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x1, coordinate.y1, coordinate.x2 - coordinate.x1, coordinate.y2 - coordinate.y1));
+    }
+
+    async function GetDataUrl(coordatinate) {
+        const canvas = GetCanvasElement();
+
+        return await GetCanvasToDataUrl(canvas, coordinate.x1, coordinate.y1, coordinate.x2 - coordinate.x1, coordinate.y2 - coordinate.y1);
     }
 
     // Maybe study how to do better closer color matching?
@@ -648,6 +658,19 @@ console.log('Spinning T solved.');
             target.g - offset < edges[3].rgb.g &&
             target.b + offset > edges[3].rgb.b &&
             target.b - offset < edges[3].rgb.b
+        );
+    }
+
+    // Maybe study how to do better closer color matching?
+    function VerifyRgbMatching(target, rgb) {
+        const offset = 8;
+        return (
+            target.r + offset > rgb.r &&
+            target.r - offset < rgb.r &&
+            target.g + offset > rgb.g &&
+            target.g - offset < rgb.g &&
+            target.b + offset > rgb.b &&
+            target.b - offset < rgb.b
         );
     }
 
@@ -860,6 +883,28 @@ console.log('x = ',x,', y = ',y);
         };
 
         return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
+    }
+
+    function GetCoordinateCustomizeAutoSellPageCloseButton() {
+        const baseCoordinate = {
+            x1: 1630,
+            y1: 35,
+            x2: 1675,
+            y2: 85
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.RIGHT);
+    }
+
+    function GetCoordinateCustomizeAutoSellPageCashIcon() {
+        const baseCoordinate = {
+            x1: 38,
+            y1: 38,
+            x2: 80,
+            y2: 85
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.LEFT);
     }
 
     async function ShowAndHideCoordinates(coordinate) {
