@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.2.2
+// @version      0.7.2.3
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -981,9 +981,9 @@
                 const categoryImage = document.createElement("img");
                 let categoryImageSrc = "./images/" + category + "-menu.png";
                 if (category === "Farm") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1jp0hscVPKug3IZxuTUVlttpsraX6S5KK";
-                } else if (category === "Ranch") {
                     categoryImageSrc = "https://drive.google.com/uc?id=1hyaaBrBpXNbzzxfrxwb2yjQIuISCeaWu";
+                } else if (category === "Ranch") {
+                    categoryImageSrc = "https://drive.google.com/uc?id=1jp0hscVPKug3IZxuTUVlttpsraX6S5KK";
                 } else if (category === "Terrain") {
                     categoryImageSrc = "https://drive.google.com/uc?id=18ozCIQLjN63E1Z9UNmwkdMVZDuX9BQTA";
                 } else if (category === "Industrial") {
