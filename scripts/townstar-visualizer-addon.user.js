@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.4.0
+// @version      0.7.4.1
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -1198,12 +1198,21 @@
             }
         }
 
-        // Overwrite selectBuilding
-        selectBuilding = function (type) {
+        function removeSelectedBuildingClass() {
             const buildings = document.querySelectorAll('.buildingmenubutton');
             buildings.forEach((building) => {
                 building.classList.remove("selectedbuildingmenubutton");
             });
+        }
+
+        function removeSelectedBuilding() {
+            removeSelectedBuildingClass();
+            selectedBuilding = "";
+        }
+
+        // Overwrite selectBuilding
+        selectBuilding = function (type) {
+            removeSelectedBuildingClass();
             if (selectedBuilding != type) {
                 selectedBuilding = type;
                 const buildingTypes = document.querySelectorAll('[id="' + removeSpecialCharacter(type) + '"]');
@@ -1247,19 +1256,19 @@
                 if (category === "All") {
                     categoryImageSrc = "https://cdn-icons-png.flaticon.com/512/3875/3875172.png";
                 } else if (category === "Farm") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1hyaaBrBpXNbzzxfrxwb2yjQIuISCeaWu";
+                    categoryImageSrc = "https://images2.imgbox.com/5d/d6/c00EfjGR_o.png";
                 } else if (category === "Ranch") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1jp0hscVPKug3IZxuTUVlttpsraX6S5KK";
+                    categoryImageSrc = "https://images2.imgbox.com/06/47/79ZGwPvU_o.png";
                 } else if (category === "Terrain") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=18ozCIQLjN63E1Z9UNmwkdMVZDuX9BQTA";
+                    categoryImageSrc = "https://images2.imgbox.com/08/40/sW1U8oEk_o.png";
                 } else if (category === "Industrial") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1AVYbAKSo6jmMO4j-2tTWwowimiLeTg4Q";
+                    categoryImageSrc = "https://images2.imgbox.com/bb/fa/LRdAgqCq_o.png";
                 } else if (category === "Trade") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1TiMNPWaj6c7YC_bCv0l_lsExkXDtcQHz";
+                    categoryImageSrc = "https://images2.imgbox.com/8a/f7/bmnwK7Hd_o.png";
                 } else if (category === "Fishing") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1lAgzvVkb82rbK6YFHbxR_THOzLdzSvGu";
+                    categoryImageSrc = "https://images2.imgbox.com/49/c2/ItpFII1z_o.png";
                 } else if (category === "Jewelry") {
-                    categoryImageSrc = "https://drive.google.com/uc?id=1hkRL2d2g92FlGdlfNFHBC8GYpzWQN_F-";
+                    categoryImageSrc = "https://images2.imgbox.com/a2/ba/t1i2JgUq_o.png";
                 }
                 categoryImage.src = categoryImageSrc;
                 categoryElement.appendChild(categoryImage);
@@ -1571,6 +1580,7 @@
 
         // Overwrite showCategoryMenu
         showCategoryMenu = function (type) {
+            removeSelectedBuilding();
             if (type != "All") {
                 selectedCategory = type;
                 document.querySelector("#search-building").value = "";
