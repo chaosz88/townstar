@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.3.4
+// @version      0.7.4.0
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -34,7 +34,7 @@
             editVisualizerObserver.disconnect();
             EditVisualizer();
             LoadEdgeNumbering();
-            // LoadBuildingSearch();
+            LoadBuildingSearch();
             // LoadFavouriteBuilding();
         }
     });
@@ -43,6 +43,7 @@
     const defaultTownGuideFilename = 'TownGuideBuild';
     const localLayoutName = 'visualizer_layout';
     let canUpdateLocalLayout = false;
+    let selectedCategory = "Farm";
 
     let loadAfterTsvOperationObserver = new MutationObserver(function(mutations) {
         if (document.querySelector('.TSV_Operation') != null) {
@@ -74,6 +75,7 @@
                 LoadStages();
             }
             RightClickRemoveBuilding();
+            showCategoryMenu(selectedCategory);
         }
     });
     loadAfterTsvOperationObserver.observe(document, {attributes: true, childList: true , subtree: true});
@@ -104,8 +106,7 @@
     AddCss('.recipetimer', 'grid-column: 2 / 4;');
     AddCss('.cellcraft', 'position: absolute; z-index: 1; height: 24px; width: 24px; object-fit: contain; left: -2px; bottom: 0; -webkit-filter: drop-shadow(1px 1px 4px #666); filter: drop-shadow(1px 1px 4px #666);');
     AddCss('.categories','grid-template-columns: repeat(8, 1fr)!important;');
-    // AddCss('.buildingmenu','grid-template-rows: 30px 30px 6fr!important;');
-    AddCss('.buildingmenu','grid-template-rows: 30px 6fr!important;');
+    AddCss('.buildingmenu','grid-template-rows: 30px 30px 6fr!important;');
     AddCss('#addon-version','position: absolute; right: 0; bottom: 0; padding: 5px; pointer-events: none;');
     AddCss('#town-guide-eu-container input', 'margin-right: 4px;');
     AddCss('#stages-body div.stage, #stage-control-container div, #add-stage-container div', 'display: inline-block; padding: 0px 8px; margin: 1px; font-size: 14px; font-weight: 400; line-height: 1.42857143; text-align: center; white-space: nowrap; vertical-align: middle; -ms-touch-action: manipulation; touch-action: manipulation; cursor: pointer; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; background-image: none; border: 1px solid transparent; border-radius: 4px; text-decoration: none;color: #000; background-color: #eee; border-color: #666;');
@@ -143,10 +144,11 @@
     AddCss('.desert','background-color: #f3b48b!important;');
     AddCss('.forest','background-color: #85bf85!important;');
     AddCss('.categorybutton.selected', 'border: 0; filter:brightness(150%);');
-    AddCss('.buildings', 'grid-template-rows: repeat(8, 1fr)!important;');
-    AddCss('.category', 'overflow-y: scroll');
+    AddCss('.buildings', 'grid-template-rows: repeat(6, 1fr)!important;');
+    AddCss('.category', 'overflow-y: scroll; background-color: lightblue;');
     AddCss('#search-building-container', 'display: grid;');
-    AddCss('#search-building', 'padding: 0 5px;');
+    AddCss('#search-building', 'padding: 0 5px; z-index: 0;');
+    AddCss('#All', 'display: none;');
 
     function LoadBuildingSearch() {
         const searchBuildingContainer = document.createElement("div");
@@ -155,9 +157,38 @@
         searchBuildingInput.id = "search-building";
         searchBuildingInput.type = "text";
         searchBuildingInput.placeholder = "Search Building";
+        searchBuildingInput.addEventListener("keyup", (event) => {
+            if (event.isComposing || event.keyCode === 229) {
+                return;
+            }
+            searchBuilding();
+        });
+        searchBuildingInput.addEventListener("blur", (event) => {
+            if (event.isComposing || event.keyCode === 229) {
+                return;
+            }
+            searchBuilding();
+        });
         searchBuildingContainer.appendChild(searchBuildingInput);
         const categoriesClass = document.querySelector(".categories");
         categoriesClass.parentNode.insertBefore(searchBuildingContainer, categoriesClass.nextSibling);
+    }
+
+    function searchBuilding() {
+        const searchBuildingText = document.querySelector("#search-building").value.trim();
+        if (searchBuildingText.length > 0) {
+            showCategoryMenu("All");
+            const buildingElements = document.querySelectorAll("#All-menu div");
+            for (const buildingElement of buildingElements) {
+                let display = "none";
+                if (new RegExp(searchBuildingText, "i").test(buildingElement.title)) {
+                    display = "";
+                }
+                buildingElement.style.display = display;
+            }
+        } else {
+            showCategoryMenu(selectedCategory);
+        }
     }
 
     function LoadNewLayoutButton() {
@@ -1190,6 +1221,7 @@
         // Overwrite renderBuildingMenu
         renderBuildingMenu = function () {
             const categories = [
+                "All",
                 "Farm",
                 "Ranch",
                 "Terrain",
@@ -1204,6 +1236,7 @@
             categoryClass.textContent = "";
             categoriesClass.textContent = "";
             categories.forEach((category) => {
+                const isAllCategory = category == "All";
                 const categoryElement = document.createElement("div");
                 categoryElement.id = category;
                 categoryElement.classList.add("categorybutton");
@@ -1211,7 +1244,9 @@
                 categoryElement.title = category;
                 const categoryImage = document.createElement("img");
                 let categoryImageSrc = "./images/" + category + "-menu.png";
-                if (category === "Farm") {
+                if (category === "All") {
+                    categoryImageSrc = "https://cdn-icons-png.flaticon.com/512/3875/3875172.png";
+                } else if (category === "Farm") {
                     categoryImageSrc = "https://drive.google.com/uc?id=1hyaaBrBpXNbzzxfrxwb2yjQIuISCeaWu";
                 } else if (category === "Ranch") {
                     categoryImageSrc = "https://drive.google.com/uc?id=1jp0hscVPKug3IZxuTUVlttpsraX6S5KK";
@@ -1236,7 +1271,10 @@
 
                 for (const building in townstarObjects) {
                     if (excludedBuildings.includes(building)) continue;
-                    if (townstarObjects[building].Class == category) {
+                    if (
+                        townstarObjects[building].Class == category ||
+                        isAllCategory
+                    ) {
                         const removedBuilding = removeSpecialCharacter(building);
                         const buildingElement = document.createElement("div");
                         buildingElement.id = removedBuilding;
@@ -1533,6 +1571,10 @@
 
         // Overwrite showCategoryMenu
         showCategoryMenu = function (type) {
+            if (type != "All") {
+                selectedCategory = type;
+                document.querySelector("#search-building").value = "";
+            }
             const categoriesElements = document.querySelectorAll(".categorybutton");
             for (const element of categoriesElements) {
                 element.classList.remove("selected");
