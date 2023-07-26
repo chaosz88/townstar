@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.4.2
+// @version      0.7.4.3
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -1013,6 +1013,7 @@
                 "Mountains": {
                     "Shady": [5, 4, 3, 2, 1],
                 },
+                // Custom Desert edge modification to match Godot.
                 "Desert": {
                     "Sandy": [3],
                 },
@@ -1626,7 +1627,9 @@
             "Haunted_Maze": {
                 "Haunted_Maze_-_Zone_1": [3, 2, 1],
                 "Haunted_Maze_-_Zone_2": [2, 1],
-                "Haunted_Maze_-_Zone_3": [3, 3],
+                // Custom maze3 modification to match Godot.
+                // "Haunted_Maze_-_Zone_3": [3, 3],
+                "Haunted_Maze_-_Zone_3": [2, 2],
                 "Haunted_Maze_-_Zone_4": [1]
             },
             "Diamond_Water_Pump": {
@@ -1769,6 +1772,7 @@
             for (let i = 0; i < grid.grid.length; i++) {
                 const cell = grid.grid[i];
                 const building = townstarObjects[cell.type];
+                const isMaze3 = cell.type == "Haunted_Maze_-_Zone_3";
 
                 if (building == null) continue;
 
@@ -1835,13 +1839,13 @@
                         ) {
                             effectValue = boostedNftProximityBonuses.Haunted_Maze[cell.type][0];
                             effectRadius = (boostedNftProximityBonuses.Haunted_Maze[cell.type]).length;
-                            if (cell.type == "Haunted_Maze_-_Zone_3") {
+                            if (isMaze3) {
                                 fixedEffectValue = effectValue;
                             }
                         } else {
                             effectValue = originalNFTProximityBonuses.Haunted_Maze[cell.type][0];
                             effectRadius = (originalNFTProximityBonuses.Haunted_Maze[cell.type]).length;
-                            if (cell.type == "Haunted_Maze_-_Zone_3") {
+                            if (isMaze3) {
                                 fixedEffectValue = effectValue;
                             }
                         }
@@ -1886,14 +1890,19 @@
             for (let x1 = tileRow - value, x2 = tileRow + value; x1 <= x2; x1++) {
                 for (let y1 = tileCol - value, y2 = tileCol + value; y1 <= y2; y1++) {
                     if (IsOutOfGrid(x1, y1) === false) {
-                        let xOffset = Math.abs(tileRow - x1);
-                        let yOffset = Math.abs(tileCol - y1);
-                        let tileIndex = (dimension * x1) + y1;
+                        const xOffset = Math.abs(tileRow - x1);
+                        const yOffset = Math.abs(tileCol - y1);
+                        const tileIndex = (dimension * x1) + y1;
+                        const type = grid.grid[tileIndex].type;
                         let proximityValue = 0;
                         if (!(xOffset == 0 && yOffset == 0)) {
-                            let yOffsetValue = Math.max(yOffset - 1, 0);
-                            let xOffsetValue = Math.max(xOffset - 1, 0);
-                            if (yOffsetValue + xOffsetValue < radius) {
+                            const yOffsetValue = Math.max(yOffset - 1, 0);
+                            const xOffsetValue = Math.max(xOffset - 1, 0);
+                            // Custom maze3 modification to match Godot.
+                            const actualRadius = (type == "Haunted_Maze_-_Zone_3") ?
+                                  radius :
+                                  radius + 1;
+                            if (yOffsetValue + xOffsetValue < actualRadius) {
                                 proximityValue = Math.max(value - yOffsetValue - xOffsetValue, 0);
                                 if (fixedEffectValue != 0) {
                                     proximityValue = fixedEffectValue;
@@ -1905,14 +1914,14 @@
                             }
                         }
                         grid.grid[tileIndex][proximity] += proximityValue;
-                        const type = grid.grid[tileIndex].type;
+                        // If no proximity bonus allowed, remove the proximity on the building tile.
                         if (type) {
                             const crafts = townstarObjects[type].Crafts.split(",");
                             for (const craft of crafts) {
                                 if (recipes[craft]) {
                                     const recipe = recipes[craft];
                                     if (
-                                        [recipe.Req1, recipe.Req2, recipe.Red3].includes(proximity) &&
+                                        [recipe.Req1, recipe.Req2, recipe.Req3].includes(proximity) &&
                                         (
                                             recipe.ProximityBonus == "None" ||
                                             recipe.ProximityBonus.split(",").includes(proximity) === false
