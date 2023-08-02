@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.0.14
+// @version      0.2.1.0
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -66,7 +66,7 @@
 
     const baseRgb = {
         TOWN_PLAYING: { r: 213, g: 225, b: 216 },
-        SPINNING_T: { r: 76, g: 76, b: 76 },
+        SPINNING_T: { r: 228, g: 113, b: 86 },
         SERVER_BUTTON_ACTIVE: { r: 250, g: 138, b: 57 },
         SERVER_BUTTON_INACTIVE: { r: 153, g: 153, b: 153 },
         SERVER_BUTTON_RESULT: { r: 72, g: 145, b: 235 },
@@ -106,7 +106,7 @@
     // Default auto enter.
     let autoEnterServer = true;
 
-    const selectedServerName = 'selectedServer';
+    const nameSelectedServer = 'selectedServer';
 
     const defaultObserverTimeOutMs = 300000;
 
@@ -131,7 +131,7 @@
     }
 
     function AppendServerSelection() {
-        const storedSelectedServer = GM_getValue(selectedServerName);
+        const storedSelectedServer = GM_getValue(nameSelectedServer);
 
         if (
             storedSelectedServer &&
@@ -142,7 +142,7 @@
 
         const serverSelectionContainer = document.createElement('div');
         serverSelectionContainer.id = 'server-selection-container';
-        serverSelectionContainer.style.cssText = 'position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; display: flex; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif;';
+        serverSelectionContainer.style.cssText = 'position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; display: flex; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none;';
 
         const serverSelectionLabel = document.createElement('div');
         serverSelectionLabel.id = 'server-selection-label';
@@ -166,7 +166,7 @@
             input.value = server[key];
             input.onclick = function() {
                 selectedServer = this.value;
-                GM_setValue(selectedServerName, this.value);
+                GM_setValue(nameSelectedServer, this.value);
             };
 
             if (input.value === selectedServer) {
@@ -197,6 +197,8 @@
             spinningTStatus.textContent = 'Spinning-T Detection Active v' + GM_info.script.version;
             document.querySelector('#app').prepend(spinningTStatus);
 
+            // New on-town spinning T cannot be recovered with mouse click, just reload the game.
+            /*
             const spinningTCountContainer = document.createElement('div');
             spinningTCountContainer.id = 'spinning-t-count-container';
             spinningTCountContainer.style.cssText = 'position: absolute; z-index: 9; bottom: 20px; margin-left: 10px; opacity: 0.5; display: flex; pointer-events: none;';
@@ -224,6 +226,7 @@
                     }
                 }
             });
+            */
         }
     })
     reloadObserver.observe(top.document, {childList: true, subtree: true});
@@ -413,6 +416,9 @@ console.log('Homepage detected!');
                                 )
                             ) {
                                 SimulateClickFromCoordinate(coordinate);
+                                // Sometime 1 click not working, try second click after 0.5 second.
+                                await delay(500);
+                                SimulateClickFromCoordinate(coordinate);
                                 enterActiveCompetition = true;
                             }
                         }
@@ -488,6 +494,11 @@ console.log('Homepage detected!');
     async function CheckSpinningT() {
         const isSpinningT = await IsSpinningT();
 
+        // New on-town spinning T cannot be recovered with mouse click, just reload the game.
+        if (isSpinningT) {
+            ReloadGame();
+        }
+        /*
         if (isSpinningT) {
 console.log('Spinning T detected!');
             if (spinningTActive === false) {
@@ -504,6 +515,7 @@ console.log('Spinning T detected!');
 console.log('Spinning T solved.');
             }
         }
+        */
     }
 
     function LogTargetAndEdges(target, edges) {
@@ -515,10 +527,10 @@ console.log('Spinning T solved.');
     }
 
     async function IsSpinningT() {
-        const coordinate = GetCoordinateCanvas();
-        const edges = await GetCoordinateFourEdgesRgb(coordinate);
+        const spinningTCoordinate = GetCoordinateSpinningT();
+        const spinningTRgb = await GetCoordinateRgb(spinningTCoordinate);
 
-        return VerifyFourEdgesRgbMatching(baseRgb.SPINNING_T, edges);
+        return VerifyRgbMatching(baseRgb.SPINNING_T, spinningTRgb)
     }
 
     function GetCanvasToDataUrl(
@@ -763,6 +775,17 @@ console.log('x = ',x,', y = ',y);
         return GetCoordinate(baseCoordinate, align);
     }
 
+    function GetCoordinateSpinningT() {
+        const baseCoordinate = {
+            x1: 775,
+            y1: 425,
+            x2: 925,
+            y2: 575
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
+    }
+
     function GetCoordinateTownPlaying() {
         const baseCoordinate = {
             x1: 300,
@@ -921,11 +944,11 @@ console.log('x = ',x,', y = ',y);
         document.body.removeChild(div);
     }
 
-    setTimeout(() => {
-        document.querySelector('html').style.overflowY = 'auto';
-    }, 15000);
-
     function SetTimeoutObserver(observer) {
         setTimeout(function() { observer.disconnect(); }, defaultObserverTimeOutMs);
     }
+
+    setTimeout(() => {
+        document.querySelector('html').style.overflowY = 'auto';
+    }, 15000);
 })();
