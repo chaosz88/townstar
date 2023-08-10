@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1.2
+// @version      0.2.1.3
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -383,7 +383,9 @@
             alarmStartTimestamp = 0;
         }
 
+        // Don't auto reload if the alarm sound.
         // Alarm sound 60 seconds (1 minute), then it will auto reload the game.
+        /*
         if (
             alarmStartTimestamp > 0 &&
             (Date.now() - alarmStartTimestamp) > refreshCheckMs
@@ -391,6 +393,7 @@
 console.log('RELOAD!');
             ReloadGame();
         }
+        */
     }
 
     function IsGameLoading() {
