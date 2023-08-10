@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1.0
+// @version      0.2.1.2
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -48,6 +48,8 @@
     const baseWidth = 1701;
     const baseHeight = 1000;
     const baseRatio = baseHeight / baseWidth; // 0.589
+    // After update on 09-Aug-2023, canvas has a ratio.
+    let canvasRatio = 1;
 
     const spinningTCheckMs = 5000;
     const homePageCheckMs = 5000;
@@ -79,14 +81,19 @@
         NO: '',
         CASUAL: 'CS',
         COMPETITION1: 'CP1',
-        COMPETITION2: 'CP2'
+        // COMPETITION2: 'CP2'
     };
 
     const serverName = {
         NO: 'No',
         CASUAL: 'Casual',
-        COMPETITION1: 'Act.Comp 1',
-        COMPETITION2: 'Act.Comp 2',
+        COMPETITION1: 'Competition',
+        // COMPETITION2: 'Act.Comp 2',
+    };
+
+    const showCoordinate = {
+        Y: 'Yes',
+        N: 'No',
     };
 
     const UiAlign = {
@@ -103,10 +110,13 @@
 
     // Default to active competition 1 server.
     let selectedServer = server.COMPETITION1;
+    let showCoordinates = false;
+
     // Default auto enter.
     let autoEnterServer = true;
 
     const nameSelectedServer = 'selectedServer';
+    const nameShowCoordinates = 'showCoordinates';
 
     const defaultObserverTimeOutMs = 300000;
 
@@ -118,7 +128,9 @@
             CheckReloadGame();
             console.log('Town Star Godot - Status Check Post loaded.');
             AppendAlarmSound();
+            SetCanvasRatio();
             AppendServerSelection();
+            // AppendShowCoordinates();
             MonitorGodot();
             console.log('Town Star Godot - Status Check Spinning T loaded.');
         }
@@ -128,6 +140,12 @@
 
     function GetObjectKey(obj, value) {
         return Object.keys(obj).find(key => obj[key] === value);
+    }
+
+    function SetCanvasRatio() {
+        const canvas = GetCanvasElement();
+        const screenWidth = GetCanvasWidth();
+        canvasRatio = canvas.width / screenWidth;
     }
 
     function AppendServerSelection() {
@@ -142,7 +160,7 @@
 
         const serverSelectionContainer = document.createElement('div');
         serverSelectionContainer.id = 'server-selection-container';
-        serverSelectionContainer.style.cssText = 'position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; display: flex; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none;';
+        serverSelectionContainer.style.cssText = 'display: grid; grid-template-columns: 100px 255px; position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none; text-align: left;';
 
         const serverSelectionLabel = document.createElement('div');
         serverSelectionLabel.id = 'server-selection-label';
@@ -182,6 +200,62 @@
         }
         serverSelectionContainer.appendChild(serverSelectionRadioButtonContainer);
         document.querySelector('body').appendChild(serverSelectionContainer);
+    }
+
+    function AppendShowCoordinates() {
+        const storedShowCoordinates = GM_getValue(nameShowCoordinates);
+
+        if (
+            storedShowCoordinates &&
+            showCoordinate.hasOwnProperty(GetObjectKey(showCoordinate, storedShowCoordinates))
+        ) {
+            showCoordinates = storedShowCoordinates;
+        }
+
+        /*
+        const showCoordinatesContainer = document.createElement('div');
+        showCoordinatesContainer.id = 'show-coordinates-container';
+        showCoordinatesContainer.style.cssText = 'position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; display: flex; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none;';
+        */
+
+        const serverSelectionContainer = document.querySelector("#server-selection-container");
+        const showCoordinatesLabel = document.createElement('div');
+        showCoordinatesLabel.id = 'show-coordinates-label';
+        showCoordinatesLabel.style.cssText = 'pointer-events: none;';
+        showCoordinatesLabel.textContent = 'Show Coord: ';
+        serverSelectionContainer.appendChild(showCoordinatesLabel);
+
+        const showCoordinatesLabelRadioButtonContainer = document.createElement('div');
+        showCoordinatesLabelRadioButtonContainer.id = 'show-coordinates-radio-button-container';
+        showCoordinatesLabelRadioButtonContainer.style.cssText = 'display: flex;';
+        const showCoordinatesName = 'show-coordinates-radio';
+
+        for (const key in showCoordinate) {
+            const inputContainer = document.createElement('div');
+            inputContainer.style.cssText = 'padding: 0 4px;';
+            const input = document.createElement('input');
+            const inputId = 'show-coordinates-' + showCoordinate[key];
+            input.id = inputId;
+            input.name = showCoordinatesName;
+            input.type = "radio";
+            input.value = showCoordinate[key];
+            input.onclick = function() {
+                showCoordinates = this.value;
+                GM_setValue(nameShowCoordinates, this.value);
+            };
+
+            if (input.value === showCoordinates) {
+                input.checked = 'checked';
+            }
+            inputContainer.appendChild(input);
+
+            const label = document.createElement('label');
+            label.textContent = showCoordinate[key];
+            label.htmlFor = inputId;
+            inputContainer.appendChild(label);
+            showCoordinatesLabelRadioButtonContainer.appendChild(inputContainer);
+        }
+        serverSelectionContainer.appendChild(showCoordinatesLabelRadioButtonContainer);
     }
 
     let reloadTimeout;
@@ -357,7 +431,6 @@ console.log('RELOAD!');
     async function CheckHomePage() {
         const isHomePage = await IsHomePage();
         if (isHomePage) {
-console.log('Homepage detected!');
             if (selectedServer === server.CASUAL) {
                 const casualPlayButtonCoordinate = GetCoordinateCasualPlayButton();
                 SimulateClickFromCoordinate(casualPlayButtonCoordinate);
@@ -483,10 +556,10 @@ console.log('Homepage detected!');
 
         return (
                 VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_ACTIVE, casualButtonEdges) ||
-                VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_INACTIVE, eventButtonEdges)
+                VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_INACTIVE, casualButtonEdges)
             ) &&
             (
-                VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_ACTIVE, casualButtonEdges) ||
+                VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_ACTIVE, eventButtonEdges) ||
                 VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_INACTIVE, eventButtonEdges)
             );
     }
@@ -540,6 +613,8 @@ console.log('Spinning T solved.');
       width,
       height
     ) {
+        // Always check and confirm current canvasRatio.
+        SetCanvasRatio();
         const buffer = document.createElement('canvas');
         const bCtx = buffer.getContext('2d');
         // set its width/height to the required ones
@@ -547,8 +622,8 @@ console.log('Spinning T solved.');
         buffer.height = height;
         bCtx.drawImage(
             canvas,
-            offsetX,
-            offsetY,
+            offsetX * canvasRatio,
+            offsetY * canvasRatio,
             width,
             height,
             0,
@@ -691,12 +766,12 @@ console.log('Spinning T solved.');
 
     function GetCanvasWidth() {
         let canvas = GetCanvasElement();
-        return canvas?.width || 0;
+        return canvas.getBoundingClientRect()?.width || canvas?.width || 0;
     }
 
     function GetCanvasHeight() {
         let canvas = GetCanvasElement();
-        return canvas?.height || 0;
+        return canvas.getBoundingClientRect()?.height || canvas?.height || 0;
     }
 
     function GetCoordinate(baseCoordinate, align = '', verticalAlign = '') {
@@ -728,12 +803,18 @@ console.log('Spinning T solved.');
             extraTopHeight = parseInt((canvasHeight - effectiveCanvasHeight) / 2);
         }
 
-        return {
+        const coordinates = {
             x1: parseInt((baseCoordinate.x1 * effectiveCanvasWidth / baseWidth) + extraLeftWidth),
             y1: parseInt((baseCoordinate.y1 * effectiveCanvasHeight / baseHeight) + extraTopHeight),
             x2: parseInt((baseCoordinate.x2 * effectiveCanvasWidth / baseWidth) + extraLeftWidth),
             y2: parseInt((baseCoordinate.y2 * effectiveCanvasHeight / baseHeight) + extraTopHeight)
         };
+
+        if (showCoordinates === showCoordinate.Y) {
+            ShowAndHideCoordinates(coordinates);
+        }
+
+        return coordinates;
     }
 
     async function SimulateClick(element, x, y, refocus = false) {
@@ -930,7 +1011,7 @@ console.log('x = ',x,', y = ',y);
     }
 
     async function ShowAndHideCoordinates(coordinate) {
-        console.log('ShowAndHideCoordinates');
+        // console.log('ShowAndHideCoordinates');
         let div = document.createElement('div');
         div.id = "ShowAndHideCoordinates";
         div.style.width = (coordinate.x2 - coordinate.x1 - 1) + "px";
