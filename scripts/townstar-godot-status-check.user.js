@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1.3
+// @version      0.2.1.4
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -55,6 +55,7 @@
     const homePageCheckMs = 5000;
     const townPlayingCheckMs = 5000;
     const townPopUpMessageCheckMs = 5000;
+    const errorFaceCheckMs = 5000;
     const notTownPlayingCheckMs = 60000; // Default 1 minute.
     // Default 5 minutes waiting time, this will be ignored if town was found.
     const delayCheckTownPlayingMs = 300000;
@@ -75,6 +76,7 @@
         BUTTON_NORMAL: { r: 72, g: 145, b: 235 },
         CLOSE_BUTTON: { r: 104, g: 161, b: 225 },
         CASH_ICON: { r: 119, g: 164, b: 66 },
+        ERROR_FACE: { r: 203, g: 142, b: 83 },
     };
 
     const server = {
@@ -140,12 +142,6 @@
 
     function GetObjectKey(obj, value) {
         return Object.keys(obj).find(key => obj[key] === value);
-    }
-
-    function SetCanvasRatio() {
-        const canvas = GetCanvasElement();
-        const screenWidth = GetCanvasWidth();
-        canvasRatio = canvas.width / screenWidth;
     }
 
     function AppendServerSelection() {
@@ -316,6 +312,12 @@
         top.postMessage(message, 'https://games.gala.com');
     }
 
+    function SetCanvasRatio() {
+        const canvas = GetCanvasElement();
+        const screenWidth = GetCanvasWidth();
+        canvasRatio = canvas.width / screenWidth;
+    }
+
     function AppendAlarmSound() {
         const alarmAudio = document.createElement('audio');
         alarmAudio.id = 'alarm-audio';
@@ -356,6 +358,7 @@
         setInterval(CheckSpinningT, spinningTCheckMs);
         setInterval(CheckTownPlaying, townPlayingCheckMs);
         setInterval(CheckTownPopUpMessage, townPopUpMessageCheckMs);
+        setInterval(CheckErrorFace, errorFaceCheckMs);
     }
 
     // If over 60 seconds fail CheckTownPlaying, play alarm sound.
@@ -567,6 +570,14 @@ console.log('RELOAD!');
             );
     }
 
+    async function CheckErrorFace() {
+        const isErrorFace = await IsErrorFace();
+
+        if (isErrorFace) {
+            ReloadGame();
+        }
+    }
+
     async function CheckSpinningT() {
         const isSpinningT = await IsSpinningT();
 
@@ -600,6 +611,14 @@ console.log('Spinning T solved.');
         console.log('edges[1]', edges[1].rgb);
         console.log('edges[2]', edges[2].rgb);
         console.log('edges[3]', edges[3].rgb);
+    }
+
+    async function IsErrorFace() {
+        const errorFaceCoordinate = GetCoordinateErrorFace();
+        const errorFaceRgb = await GetCoordinateRgb(errorFaceCoordinate);
+
+        return VerifyRgbMatching(baseRgb.ERROR_FACE, errorFaceRgb)
+
     }
 
     async function IsSpinningT() {
@@ -710,7 +729,7 @@ console.log('Spinning T solved.');
         return await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x1, coordinate.y1, coordinate.x2 - coordinate.x1, coordinate.y2 - coordinate.y1));
     }
 
-    async function GetDataUrl(coordatinate) {
+    async function GetDataUrl(coordinate) {
         const canvas = GetCanvasElement();
 
         return await GetCanvasToDataUrl(canvas, coordinate.x1, coordinate.y1, coordinate.x2 - coordinate.x1, coordinate.y2 - coordinate.y1);
@@ -857,6 +876,17 @@ console.log('x = ',x,', y = ',y);
         };
 
         return GetCoordinate(baseCoordinate, align);
+    }
+
+    function GetCoordinateErrorFace() {
+        const baseCoordinate = {
+            x1: 440,
+            y1: 275,
+            x2: 635,
+            y2: 470
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.LEFT);
     }
 
     function GetCoordinateSpinningT() {
