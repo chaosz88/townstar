@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1.4
+// @version      0.2.1.5
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -77,6 +77,7 @@
         CLOSE_BUTTON: { r: 104, g: 161, b: 225 },
         CASH_ICON: { r: 119, g: 164, b: 66 },
         ERROR_FACE: { r: 203, g: 142, b: 83 },
+        ERROR_FACE_SIDE: { r: 168, g: 168, b: 168 },
     };
 
     const server = {
@@ -574,6 +575,7 @@ console.log('RELOAD!');
         const isErrorFace = await IsErrorFace();
 
         if (isErrorFace) {
+console.log("Error Face detected, Reloading.");
             ReloadGame();
         }
     }
@@ -583,6 +585,7 @@ console.log('RELOAD!');
 
         // New on-town spinning T cannot be recovered with mouse click, just reload the game.
         if (isSpinningT) {
+console.log("Spinning T detected, Reloading.");
             ReloadGame();
         }
         /*
@@ -616,8 +619,11 @@ console.log('Spinning T solved.');
     async function IsErrorFace() {
         const errorFaceCoordinate = GetCoordinateErrorFace();
         const errorFaceRgb = await GetCoordinateRgb(errorFaceCoordinate);
+        const errorFaceSideCoordinate = GetCoordinateErrorFaceSide();
+        const errorFaceSideRgb = await GetCoordinateRgb(errorFaceSideCoordinate);
 
-        return VerifyRgbMatching(baseRgb.ERROR_FACE, errorFaceRgb)
+        return VerifyRgbMatching(baseRgb.ERROR_FACE, errorFaceRgb) &&
+            VerifyRgbMatching(baseRgb.ERROR_FACE_SIDE, errorFaceSideRgb)
 
     }
 
@@ -883,6 +889,17 @@ console.log('x = ',x,', y = ',y);
             x1: 440,
             y1: 275,
             x2: 635,
+            y2: 470
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.LEFT);
+    }
+
+    function GetCoordinateErrorFaceSide() {
+        const baseCoordinate = {
+            x1: 695,
+            y1: 420,
+            x2: 745,
             y2: 470
         };
 
