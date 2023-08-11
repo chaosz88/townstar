@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1.5
+// @version      0.2.1.6
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -70,6 +70,7 @@
     const baseRgb = {
         TOWN_PLAYING: { r: 213, g: 225, b: 216 },
         SPINNING_T: { r: 228, g: 113, b: 86 },
+        SPINNING_Ts: { r: 235, g: 125, b: 44 },
         SERVER_BUTTON_ACTIVE: { r: 250, g: 138, b: 57 },
         SERVER_BUTTON_INACTIVE: { r: 153, g: 153, b: 153 },
         SERVER_BUTTON_RESULT: { r: 72, g: 145, b: 235 },
@@ -629,9 +630,12 @@ console.log('Spinning T solved.');
 
     async function IsSpinningT() {
         const spinningTCoordinate = GetCoordinateSpinningT();
-        const spinningTRgb = await GetCoordinateRgb(spinningTCoordinate);
+        const spinningTRgb = await GetCoordinateRgb(spinningTCoordinate);{
+        const spinningTsCoordinate = GetCoordinateSpinningTs();
+        const spinningTsRgb = await GetCoordinateRgb(spinningTsCoordinate);
 
-        return VerifyRgbMatching(baseRgb.SPINNING_T, spinningTRgb)
+        return VerifyRgbMatching(baseRgb.SPINNING_T, spinningTRgb) &&
+            VerifyRgbMatching(baseRgb.SPINNING_Ts, spinningTsRgb)
     }
 
     function GetCanvasToDataUrl(
@@ -912,6 +916,17 @@ console.log('x = ',x,', y = ',y);
             y1: 425,
             x2: 925,
             y2: 575
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
+    }
+
+    function GetCoordinateSpinningTs() {
+        const baseCoordinate = {
+            x1: 841,
+            y1: 490,
+            x2: 861,
+            y2: 510
         };
 
         return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
