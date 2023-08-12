@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.1.6
+// @version      0.2.2.0
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -54,8 +54,7 @@
     const spinningTCheckMs = 5000;
     const homePageCheckMs = 5000;
     const townPlayingCheckMs = 5000;
-    const townPopUpMessageCheckMs = 5000;
-    const errorFaceCheckMs = 5000;
+
     const notTownPlayingCheckMs = 60000; // Default 1 minute.
     // Default 5 minutes waiting time, this will be ignored if town was found.
     const delayCheckTownPlayingMs = 300000;
@@ -79,6 +78,8 @@
         CASH_ICON: { r: 119, g: 164, b: 66 },
         ERROR_FACE: { r: 203, g: 142, b: 83 },
         ERROR_FACE_SIDE: { r: 168, g: 168, b: 168 },
+        // Basically it means no content in canvas
+        WEBGL_CONTEXT_LOST: { r: 0, g: 0, b: 0 },
     };
 
     const server = {
@@ -118,6 +119,8 @@
 
     // Default auto enter.
     let autoEnterServer = true;
+
+    let townLoaded = false;
 
     const nameSelectedServer = 'selectedServer';
     const nameShowCoordinates = 'showCoordinates';
@@ -299,6 +302,14 @@
                 }
             });
             */
+            window.addEventListener('message', event => {
+                if (event.origin.startsWith('https://tsf-client.gala.com')) {
+                    if (!reloadTriggered) {
+                        window.clearTimeout(reloadTimeout);
+                        reloadTimeout = window.setTimeout(ReloadGame, reloadTimeoutWaitMs);
+                    }
+                }
+            });
         }
     })
     reloadObserver.observe(top.document, {childList: true, subtree: true});
@@ -359,21 +370,23 @@
         setInterval(CheckHomePage, homePageCheckMs);
         setInterval(CheckSpinningT, spinningTCheckMs);
         setInterval(CheckTownPlaying, townPlayingCheckMs);
-        setInterval(CheckTownPopUpMessage, townPopUpMessageCheckMs);
-        setInterval(CheckErrorFace, errorFaceCheckMs);
     }
 
     // If over 60 seconds fail CheckTownPlaying, play alarm sound.
     async function CheckTownPlaying() {
         const isGameLoading = IsGameLoading();
+
         if (isGameLoading) {
             allowPlayAlarm = false;
             townStopTimestamp = 0;
             alarmStartTimestamp = 0;
         }
         const isTownPlaying = await IsTownPlaying();
+
         if (!isTownPlaying) {
-            console.log('Town stop?');
+            townLoaded = false;
+// console.log('Town stop?');
+
             if (townStopTimestamp <= 0) {
                 townStopTimestamp = Date.now();
             } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
@@ -382,10 +395,22 @@
                     alarmStartTimestamp = Date.now();
                 }
             }
+
+            CheckErrorFace();
+
+            if (townLoaded) {
+                CheckWebGlContextLost();
+            }
         } else {
+            townLoaded = true;
+
             allowPlayAlarm = true;
             townStopTimestamp = 0;
             alarmStartTimestamp = 0;
+
+            if (townLoaded) {
+                CheckTownPopUpMessage();
+            }
         }
 
         // Don't auto reload if the alarm sound.
@@ -423,6 +448,7 @@ console.log('RELOAD!');
     }
 
     async function CheckTownPopUpMessage() {
+// console.log('CheckTownPopUpMessage');
         const isTownPopUpMessage = await IsTownPopUpMessage();
         if (isTownPopUpMessage) {
             const townInGamePopUpOkButtonCoordinate = GetCoordinateTownInGamePopUpOkButton();
@@ -572,21 +598,33 @@ console.log('RELOAD!');
             );
     }
 
+    async function CheckWebGlContextLost() {
+// console.log('CheckWebGlContextLost');
+        const isWebGlContextLost = await IsWebGlContextLost();
+
+        if (isWebGlContextLost) {
+console.log("WebGlContextLost detected. Reloading.");
+            ReloadGame();
+        }
+    }
+
     async function CheckErrorFace() {
+// console.log('CheckErrorFace');
         const isErrorFace = await IsErrorFace();
 
         if (isErrorFace) {
-console.log("Error Face detected, Reloading.");
+console.log("Error Face detected. Reloading.");
             ReloadGame();
         }
     }
 
     async function CheckSpinningT() {
+// console.log('CheckSpinningT');
         const isSpinningT = await IsSpinningT();
 
         // New on-town spinning T cannot be recovered with mouse click, just reload the game.
         if (isSpinningT) {
-console.log("Spinning T detected, Reloading.");
+console.log("Spinning T detected. Reloading.");
             ReloadGame();
         }
         /*
@@ -615,6 +653,14 @@ console.log('Spinning T solved.');
         console.log('edges[1]', edges[1].rgb);
         console.log('edges[2]', edges[2].rgb);
         console.log('edges[3]', edges[3].rgb);
+    }
+
+    async function IsWebGlContextLost() {
+        const webGlContestLostCoordinate = GetCoordinateWebGlContestLost();
+        const webGlContestLostRgb = await GetCoordinateRgb(webGlContestLostCoordinate);
+
+        return VerifyRgbMatching(baseRgb.WEBGL_CONTEXT_LOST, webGlContestLostRgb);
+
     }
 
     async function IsErrorFace() {
@@ -886,6 +932,17 @@ console.log('x = ',x,', y = ',y);
         };
 
         return GetCoordinate(baseCoordinate, align);
+    }
+
+    function GetCoordinateWebGlContestLost() {
+        const baseCoordinate = {
+            x1: 845,
+            y1: 495,
+            x2: 855,
+            y2: 505
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.LEFT);
     }
 
     function GetCoordinateErrorFace() {
