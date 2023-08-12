@@ -630,7 +630,7 @@ console.log('Spinning T solved.');
 
     async function IsSpinningT() {
         const spinningTCoordinate = GetCoordinateSpinningT();
-        const spinningTRgb = await GetCoordinateRgb(spinningTCoordinate);{
+        const spinningTRgb = await GetCoordinateRgb(spinningTCoordinate);
         const spinningTsCoordinate = GetCoordinateSpinningTs();
         const spinningTsRgb = await GetCoordinateRgb(spinningTsCoordinate);
 
