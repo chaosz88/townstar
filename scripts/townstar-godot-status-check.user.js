@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.2.0
+// @version      0.2.2.1
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -351,8 +351,10 @@
         }
     }
 
-    function ReloadGame() {
+    async function ReloadGame() {
         reloadTriggered = true;
+        // Add 3 seconds delay prevent too fast reload that don't know what is happening.
+        await delay(3000);
         window.location.reload();
     }
 
@@ -380,6 +382,8 @@
             allowPlayAlarm = false;
             townStopTimestamp = 0;
             alarmStartTimestamp = 0;
+
+            await CheckStatusNotice();
         }
         const isTownPlaying = await IsTownPlaying();
 
@@ -399,7 +403,7 @@
             CheckErrorFace();
 
             if (townLoaded) {
-                CheckWebGlContextLost();
+                await CheckWebGlContextLost();
             }
         } else {
             townLoaded = true;
@@ -409,7 +413,7 @@
             alarmStartTimestamp = 0;
 
             if (townLoaded) {
-                CheckTownPopUpMessage();
+                await CheckTownPopUpMessage();
             }
         }
 
@@ -598,13 +602,27 @@ console.log('RELOAD!');
             );
     }
 
+    function IsStatusNotice() {
+        return document.querySelector("#status-notice").innerText != "";
+    }
+
+    async function CheckStatusNotice() {
+// console.log('CheckStatusNotice');
+        const isStatusNotice = IsStatusNotice();
+
+        if (isStatusNotice) {
+console.log("Status Notice detected. Reloading.");
+            await ReloadGame();
+        }
+    }
+
     async function CheckWebGlContextLost() {
 // console.log('CheckWebGlContextLost');
         const isWebGlContextLost = await IsWebGlContextLost();
 
         if (isWebGlContextLost) {
 console.log("WebGlContextLost detected. Reloading.");
-            ReloadGame();
+            await ReloadGame();
         }
     }
 
@@ -614,7 +632,7 @@ console.log("WebGlContextLost detected. Reloading.");
 
         if (isErrorFace) {
 console.log("Error Face detected. Reloading.");
-            ReloadGame();
+            await ReloadGame();
         }
     }
 
@@ -625,7 +643,7 @@ console.log("Error Face detected. Reloading.");
         // New on-town spinning T cannot be recovered with mouse click, just reload the game.
         if (isSpinningT) {
 console.log("Spinning T detected. Reloading.");
-            ReloadGame();
+            await ReloadGame();
         }
         /*
         if (isSpinningT) {
@@ -768,8 +786,8 @@ console.log('Spinning T solved.');
 
     async function GetCoordinateFourEdgesRgb(coordinate) {
         const canvas = GetCanvasElement(),
-              edgeWidth = 5,
-              edgeHeight = 5;
+              edgeWidth = 3,
+              edgeHeight = 3;
         const edges = [];
         edges.push({ rgb: await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x1, coordinate.y1, edgeWidth, edgeHeight)) });
         edges.push({ rgb: await GetAverageRgb(GetCanvasToDataUrl(canvas, coordinate.x2 - edgeWidth, coordinate.y1, edgeWidth, edgeHeight)) });
