@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.5.1
+// @version      0.7.5.2
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -1700,6 +1700,7 @@
                 "Sylvester": [1]
             },
             "Panner": {
+                "Panner_Bunk_House": [1],
                 "Panner_House": [1],
                 "Rose_&_Lily": [1],
             }
@@ -1738,6 +1739,7 @@
                 "Sylvester": [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
             },
             "Panner": {
+                "Panner_Bunk_House": [0],
                 "Panner_House": [0],
                 "Rose_&_Lily": [0],
             }
@@ -1774,6 +1776,7 @@
                 "Sylvester": ["Silver_Ore"]
             },
             "Panner": {
+                "Panner_Bunk_House": ["Shady"],
                 "Panner_House": ["Shady"],
                 "Rose_&_Lily": ["Shady"],
             }
@@ -1987,11 +1990,11 @@
                             isDiamondWaterPump == true &&
                             boostedNftProximityEffects.Diamond_Water_Pump[cell.type].includes(proximity) == true
                         ) {
-                            const boostedBonuses = boostedNftProximityBonuses.Haunted_Maze[cell.type];
+                            const boostedBonuses = boostedNftProximityBonuses.Diamond_Water_Pump[cell.type];
                             effectValue = boostedBonuses[0];
                             effectRadius = boostedBonuses.length;
                         } else {
-                            const originalBonuses = originalNFTProximityBonuses.Haunted_Maze[cell.type];
+                            const originalBonuses = originalNFTProximityBonuses.Diamond_Water_Pump[cell.type];
                             effectValue = originalBonuses[0];
                             effectRadius = originalBonuses.length;
                         }
