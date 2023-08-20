@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.7.5.3
+// @version      0.7.5.4
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -90,9 +90,14 @@
     }
 
     function AddFunction(name, content) {
+        const newContent = 'function ' + name + ' {' + content + '}';
+        AddScript(newContent);
+    }
+
+    function AddScript(content) {
         let scriptElement = document.createElement('script');
         scriptElement.type = 'text/javascript';
-        scriptElement.textContent = 'function ' + name + ' {' + content + '}';
+        scriptElement.textContent = content;
         document.getElementsByTagName('head')[0].appendChild(scriptElement);
     }
 
@@ -101,7 +106,7 @@
     AddCss('.cell', 'position: relative;');
     AddCss('.proximity-display', 'position: absolute; font-size: 16px; color: white; text-shadow: black 0 0 3px; top: 0; left: 0; pointer-events: none;');
     AddCss('.reciperow', 'grid-template-columns: 1fr 8fr 2fr!important; grid-template-rows: 1fr 1fr auto!important; margin-top: 5px;');
-    AddCss('.recipeheader', 'position: relative; line-height: 22px;');
+    AddCss('.recipeheader', 'position: relative; line-height: 18px;');
     AddCss('.recipecraft', 'height:100%; margin: auto 2px auto 5px;');
     AddCss('.recipetitle', 'position: absolute; width: 80%; white-space: nowrap;');
     AddCss('.recipeimage', 'width: auto; height: 23px; vertical-align: middle;');
@@ -845,7 +850,7 @@
                 selected = cell.id;
                 placeTile("remove");
                 renderStats();
-                renderGrid();
+                // renderGrid();
             });
         }
     }
@@ -857,6 +862,14 @@
     AddFunction('setCellCraft(cellIndex, craft)',
         "grid.grid[cellIndex].craft = craft;" +
         "renderCellCraft(cellIndex);"
+    );
+    AddFunction('setRecipeCellCraft(cellIndex, building, craft)',
+        "const selectedCraft = document.querySelector('input[name=\"recipe_\' + building + \'\"]:checked');" +
+        "let cellCraft = undefined;" +
+        "if (selectedCraft) {" +
+            "cellCraft = craft;" +
+        "}" +
+        "setCellCraft(cellIndex, cellCraft);"
     );
     AddFunction('renderCellCraft(cellIndex)',
         "const cellElement = document.querySelector('#cell' + cellIndex);" +
@@ -879,6 +892,21 @@
     );
     AddFunction('removeSpecialCharacter(string)',
         "return string.replace(/'/g, '').replace(/\"/g, '');"
+    );
+    AddScript('let selectedCraft = ""; let craftChecked = false;');
+    AddFunction('checkCraft(input)',
+        "if (" +
+            "input.value == selectedCraft && " +
+            "craftChecked" +
+        ") {" +
+            "input.checked = false;" +
+            "craftChecked = false;" +
+            "var event = new Event('change');" +
+            "input.dispatchEvent(event);" +
+            "return;" +
+        "}" +
+        "selectedCraft = input.value;" +
+        "craftChecked = true;"
     );
 
     function IsEmptyObject(object) {
@@ -905,7 +933,7 @@
             grid[border] = newBorderType;
             renderBorders();
             renderGrid();
-            renderStats();
+            // renderStats();
             updateExportGrid();
         }
 
@@ -1131,10 +1159,12 @@
         // Overwrite selectCell
         selectCell = function (cell) {
             HideStageInfo();
+            if (selected) document.querySelector("#" + selected).classList.remove("selected");
             selected = cell.id;
             if (selectedBuilding != "") placeTile(selectedBuilding);
+            cell.classList.add("selected");
             renderStats();
-            renderGrid();
+            // renderGrid();
         }
 
         // Overwrite updateExportGrid
@@ -1472,9 +1502,21 @@
                     grid.grid[id].edgeSatisfied = true;
                 } else {
                     grid.grid[id].type = type;
+
+                    const building = townstarObjects[type];
+                    if (building) {
+                        const buildingRecipes = building.Crafts.split(",");
+                        if (
+                            buildingRecipes.length == 1 &&
+                            buildingRecipes[0] != "None"
+                        ) {
+                            grid.grid[id].craft = buildingRecipes[0];
+                        }
+                    }
                 }
                 renderGrid();
                 updateExportGrid();
+               //  renderStats();
             }
         }
 
@@ -1488,6 +1530,8 @@
         renderStats = function () {
             const cellIndex = getCellIndex();
             const cell = grid.grid[cellIndex];
+            selectedCraft = "";
+            craftChecked = false;
             if (!cell) return;
             const building = townstarObjects[cell.type];
             if (building === undefined) return;
@@ -1500,17 +1544,21 @@
             tileinfopic.appendChild(infoSpan);
             const recipeBuildingName = getPrettyName(cell.type);
             document.querySelector(".tileinfotitle").innerHTML = `<span>${getPrettyName(cell.type)}</span`;
-            const buildingRecipies = building.Crafts.split(",");
+            const buildingRecipes = building.Crafts.split(",");
 
             let recipesHTML = "";
-            if (buildingRecipies.length != 0) {
+            if (buildingRecipes.length != 0) {
                 recipesHTML = "<span class='recipesheader'>Recipes</span>";
-                buildingRecipies.forEach((rec) => {
+                buildingRecipes.forEach((rec) => {
                     if (rec == "None") return;
+                    if (cell.craft == rec) {
+                        selectedCraft = cell.craft;
+                        craftChecked = true;
+                    }
                     recipesHTML +=
                       `<div class="reciperow">` +
                         `<div class="recipeheader">` +
-                          `<input id="recipe_${rec}" name="recipe_${cell.type}" class="recipecraft" value="${rec}" type="radio"` + (cell.craft == rec ? ` checked` : ``) + ` onchange="setCellCraft(${cellIndex},'${rec}'); updateExportGrid();"></input>` +
+                          `<input id="recipe_${rec}" onclick="checkCraft(this);" name="recipe_${cell.type}" class="recipecraft" value="${rec}" type="radio"` + (cell.craft == rec ? ` checked` : ``) + ` onchange="setRecipeCellCraft(${cellIndex},'${cell.type}','${rec}'); updateExportGrid();"></input>` +
                           `<label for="recipe_${rec}" class="recipetitle">` +
                             `<img class='recipeimage' src='${getCraftIcon(rec)}' />` +
                           `${getCraftName(rec)}</label>` +
@@ -1702,7 +1750,7 @@
                 "Sylvester": [1]
             },
             "Panner": {
-                "Panner_Bunk_House": [1],
+                "Panner_Bunk_House": [2, 1],
                 "Panner_House": [1],
                 "Rose_&_Lily": [1],
             }
