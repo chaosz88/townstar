@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.8.0.0
+// @version      0.8.0.1
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
@@ -220,15 +220,15 @@
             requirementImage.classList.add('recipeimage');
             requirementContainer.appendChild(requirementImage);
 
-            const requirementValue = document.createElement('span');
-            requirementValue.classList.add('product-rate-value');
-            requirementValue.textContent = "[ " + value + " ]";
-            requirementContainer.appendChild(requirementValue);
-
             const requirementName = document.createElement('span');
             requirementName.classList.add('product-rate-name');
             requirementName.textContent = getPrettyName(requirement);
             requirementContainer.appendChild(requirementName);
+
+            const requirementValue = document.createElement('span');
+            requirementValue.classList.add('product-rate-value');
+            requirementValue.textContent = value;
+            requirementContainer.appendChild(requirementValue);
 
             content.appendChild(requirementContainer);
         }
@@ -386,8 +386,9 @@
     AddCss('#town-guide-eu-container', 'grid-area: 7 / 1 / 7 / 1;');
     AddCss('#stages-container', 'grid-area: 7 / 2 / 7 / 2;');
     AddCss('#div-display-txtArea', 'margin: 0!important;');
-    AddCss('.product-rate-value', 'margin: 0 10px;');
     AddCss('#info-content-container', 'overflow-y: scroll; overflow-x: auto;');
+    AddCss('#product-rate-content .ingredient', 'display: grid; grid-template-columns: 1fr 6fr 2fr;');
+    AddCss('.product-rate-name', 'overflow: hidden;');
 
     function LoadBuildingSearch() {
         const searchBuildingContainer = document.createElement("div");
