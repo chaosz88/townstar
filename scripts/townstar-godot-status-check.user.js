@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.2.2
+// @version      0.2.3.0
 // @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -84,6 +84,7 @@
 
     const server = {
         NO: '',
+        COMMON_GROUND: 'CG',
         CASUAL: 'CS',
         COMPETITION1: 'CP1',
         // COMPETITION2: 'CP2'
@@ -91,6 +92,7 @@
 
     const serverName = {
         NO: 'No',
+        COMMON_GROUND: 'Common Ground',
         CASUAL: 'Casual',
         COMPETITION1: 'Competition',
         // COMPETITION2: 'Act.Comp 2',
@@ -137,7 +139,9 @@
             AppendAlarmSound();
             SetCanvasRatio();
             AppendServerSelection();
-            // AppendShowCoordinates();
+            if (showCoordinates) {
+                AppendShowCoordinates();
+            }
             MonitorGodot();
             console.log('Town Star Godot - Status Check Spinning T loaded.');
         }
@@ -161,7 +165,7 @@
 
         const serverSelectionContainer = document.createElement('div');
         serverSelectionContainer.id = 'server-selection-container';
-        serverSelectionContainer.style.cssText = 'display: grid; grid-template-columns: 100px 255px; position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none; text-align: left;';
+        serverSelectionContainer.style.cssText = 'display: grid; grid-template-columns: 100px 150px; position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none; text-align: left;';
 
         const serverSelectionLabel = document.createElement('div');
         serverSelectionLabel.id = 'server-selection-label';
@@ -169,37 +173,27 @@
         serverSelectionLabel.textContent = 'Server: ';
         serverSelectionContainer.appendChild(serverSelectionLabel);
 
-        const serverSelectionRadioButtonContainer = document.createElement('div');
-        serverSelectionRadioButtonContainer.id = 'server-selection-radio-button-container';
-        serverSelectionRadioButtonContainer.style.cssText = 'display: flex;';
-        const serverSelectionName = 'server-selection-radio';
+        const serverSelectionDropDownContainer = document.createElement('div');
+        serverSelectionDropDownContainer.id = 'server-selection-dropdown-container';
+        const serverSelectionSelect = document.createElement('select');
+        serverSelectionSelect.id = 'server-selection';
+        serverSelectionSelect.style.cssText = 'border: 0;';
+        serverSelectionSelect.onchange = function() {
+            selectedServer = this.value;
+            GM_setValue(nameSelectedServer, this.value);
+        }
 
         for (const key in server) {
-            const inputContainer = document.createElement('div');
-            inputContainer.style.cssText = 'padding: 0 4px;';
-            const input = document.createElement('input');
-            const inputId = 'server-selection-' + server[key];
-            input.id = inputId;
-            input.name = serverSelectionName;
-            input.type = "radio";
-            input.value = server[key];
-            input.onclick = function() {
-                selectedServer = this.value;
-                GM_setValue(nameSelectedServer, this.value);
-            };
-
-            if (input.value === selectedServer) {
-                input.checked = 'checked';
+            const serverSelectOption = document.createElement('option');
+            serverSelectOption.text = serverName[key];
+            serverSelectOption.value = server[key];
+            if (serverSelectOption.value === selectedServer) {
+                serverSelectOption.selected = true;
             }
-            inputContainer.appendChild(input);
-
-            const label = document.createElement('label');
-            label.textContent = serverName[key];
-            label.htmlFor = inputId;
-            inputContainer.appendChild(label);
-            serverSelectionRadioButtonContainer.appendChild(inputContainer);
+            serverSelectionSelect.appendChild(serverSelectOption);
         }
-        serverSelectionContainer.appendChild(serverSelectionRadioButtonContainer);
+
+        serverSelectionContainer.appendChild(serverSelectionSelect);
         document.querySelector('body').appendChild(serverSelectionContainer);
     }
 
@@ -353,7 +347,7 @@
 
     async function ReloadGame() {
         reloadTriggered = true;
-        // Add 3 seconds delay prevent too fast reload that don't know what is happening.
+        // Add 3 second delay prevent too fast reload that don't know what is happening.
         await delay(3000);
         window.location.reload();
     }
@@ -369,7 +363,7 @@
 
     // GODOT
     async function MonitorGodot() {
-        setInterval(CheckHomePage, homePageCheckMs);
+        // setInterval(CheckHomePage, homePageCheckMs);
         setInterval(CheckSpinningT, spinningTCheckMs);
         setInterval(CheckTownPlaying, townPlayingCheckMs);
     }
@@ -384,34 +378,36 @@
             alarmStartTimestamp = 0;
 
             await CheckStatusNotice();
-        }
-        const isTownPlaying = await IsTownPlaying();
-
-        if (!isTownPlaying) {
-            townLoaded = false;
-// console.log('Town stop?');
-
-            if (townStopTimestamp <= 0) {
-                townStopTimestamp = Date.now();
-            } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
-                PlayAlarmSound();
-                if (alarmStartTimestamp <= 0) {
-                    alarmStartTimestamp = Date.now();
-                }
-            }
-
-            await CheckErrorFace();
-            await CheckTownPopUpMessage();
-
-            if (townLoaded) {
-                await CheckWebGlContextLost();
-            }
         } else {
-            townLoaded = true;
+            const isTownPlaying = await IsTownPlaying();
 
-            allowPlayAlarm = true;
-            townStopTimestamp = 0;
-            alarmStartTimestamp = 0;
+            if (!isTownPlaying) {
+                townLoaded = false;
+                // console.log('Town stop?');
+
+                if (townStopTimestamp <= 0) {
+                    townStopTimestamp = Date.now();
+                } else if ((Date.now() - townStopTimestamp) > notTownPlayingCheckMs) {
+                    PlayAlarmSound();
+                    if (alarmStartTimestamp <= 0) {
+                        alarmStartTimestamp = Date.now();
+                    }
+                }
+
+                await CheckHomePage();
+                await CheckErrorFace();
+                await CheckTownPopUpMessage();
+
+                if (townLoaded) {
+                    await CheckWebGlContextLost();
+                }
+            } else {
+                townLoaded = true;
+
+                allowPlayAlarm = true;
+                townStopTimestamp = 0;
+                alarmStartTimestamp = 0;
+            }
         }
 
         // Don't auto reload if the alarm sound.
@@ -542,6 +538,9 @@ console.log('RELOAD!');
                         console.log('No selected active competition server found.');
                     }
                 }
+            } else if (selectedServer === server.COMMON_GROUND) {
+                const commonGroundPlayButtonCoordinate = GetCoordinateCommonGroundPlayButton();
+                SimulateClickFromCoordinate(commonGroundPlayButtonCoordinate);
             }
         }
     }
@@ -585,9 +584,11 @@ console.log('RELOAD!');
     async function IsHomePage() {
         const casualButtonCoordinate = GetCoordinateCasualPlayButton();
         const eventButtonCoordinate = GetCoordinateEventEnterButton();
+        const commonGroundButtonCoordinate = GetCoordinateCommonGroundPlayButton();
 
         const casualButtonEdges = await GetCoordinateFourEdgesRgb(casualButtonCoordinate);
         const eventButtonEdges = await GetCoordinateFourEdgesRgb(eventButtonCoordinate);
+        const commonButtonEdges = await GetCoordinateFourEdgesRgb(commonGroundButtonCoordinate);
 
         return (
                 VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_ACTIVE, casualButtonEdges) ||
@@ -596,11 +597,15 @@ console.log('RELOAD!');
             (
                 VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_ACTIVE, eventButtonEdges) ||
                 VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_INACTIVE, eventButtonEdges)
+            ) &&
+            (
+                VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_ACTIVE, commonButtonEdges) ||
+                VerifyFourEdgesRgbMatching(baseRgb.SERVER_BUTTON_INACTIVE, commonButtonEdges)
             );
     }
 
     function IsStatusNotice() {
-        return document.querySelector("#status-notice").innerText != "";
+        return document.querySelector("#status-notice").textContent != "";
     }
 
     async function CheckStatusNotice() {
@@ -1026,23 +1031,34 @@ console.log('x = ',x,', y = ',y);
         return GetCoordinate(baseCoordinate, UiAlign.LEFT);
     }
 
-    function GetCoordinateTownPoint() {
+    function GetCoordinateTownStars() {
         const baseCoordinate = {
             x1: 1280,
             y1: 133,
-            x2: 1465,
+            x2: 1490,
             y2: 173
         };
 
         return GetCoordinate(baseCoordinate, UiAlign.RIGHT);
     }
 
+    function GetCoordinateCommonGroundPlayButton() {
+        const baseCoordinate = {
+            x1: 170,
+            y1: 770,
+            x2: 475,
+            y2: 830
+        };
+
+        return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
+    }
+
     function GetCoordinateCasualPlayButton() {
         const baseCoordinate = {
-            x1: 423,
-            y1: 755,
-            x2: 722,
-            y2: 825
+            x1: 730,
+            y1: 770,
+            x2: 1035,
+            y2: 830
         };
 
         return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
@@ -1050,10 +1066,10 @@ console.log('x = ',x,', y = ',y);
 
     function GetCoordinateEventEnterButton() {
         const baseCoordinate = {
-            x1: 983,
-            y1: 755,
-            x2: 1282,
-            y2: 825
+            x1: 1280,
+            y1: 770,
+            x2: 1585,
+            y2: 830
         };
 
         return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
