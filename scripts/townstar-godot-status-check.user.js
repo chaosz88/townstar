@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.3.0
-// @description  Auto go back server after Spinning T, alarm sound when not playing after 1 minute, auto refresh after 1 minute of alarm sound.
+// @version      0.2.3.1
+// @description  Town Star Godot - Status Check.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
 // @match        *://*.gala.games/games/town-star*
@@ -19,13 +19,13 @@
 
     // [IMPORTANT READ]
     // Don't forget it need a manual refresh after launch the game.
-    // Label "Spinning-T Detection Active" at bottom left of screen to confirm it is monitoring.
+    // Label "Spinning-Earth Detection Active" at bottom left of screen to confirm it is monitoring.
     //
-    // To allow alarm sound and auto go back server after Spinning T happen,
+    // To allow alarm sound and auto go back server after Spinning Earth happen,
     // you have to make sure your game is always FOCUSED (before you leave your computer, mouse click once on the Town Star game screen)
     //
-    // This script try to detect 4 edges of the game screen, if all the same grey color of spinning T, then it play alarm sound.
-    // If no "Spinning-T Detection Active" display at bottom left.
+    // This script try to detect 4 edges of the game screen, if all the same grey color of spinning Earth, then it play alarm sound.
+    // If no "Spinning-Earth Detection Active" display at bottom left.
     // Use F5 to refresh to Town Star game (not start Town Star game from gala.games website).
 
     // If grey face show up, after some seconds (around 60+ seconds) it will sound alarm.
@@ -51,7 +51,7 @@
     // After update on 09-Aug-2023, canvas has a ratio.
     let canvasRatio = 1;
 
-    const spinningTCheckMs = 5000;
+    const spinningEarthCheckMs = 5000;
     const homePageCheckMs = 5000;
     const townPlayingCheckMs = 5000;
 
@@ -62,14 +62,16 @@
 
     let townStopTimestamp = 0;
     let alarmStartTimestamp = 0;
-    let spinningTCount = 0;
-    let spinningTActive = false;
+    let spinningEarthCount = 0;
+    let spinningEarthActive = false;
     let allowPlayAlarm = false;
 
     const baseRgb = {
         TOWN_PLAYING: { r: 213, g: 225, b: 216 },
-        SPINNING_T: { r: 228, g: 113, b: 86 },
-        SPINNING_Ts: { r: 235, g: 125, b: 44 },
+        // SPINNING_T: { r: 228, g: 113, b: 86 },
+        // SPINNING_Ts: { r: 235, g: 125, b: 44 },
+        SPINNING_EARTH: { r: 140, g: 173, b: 212 },
+        SPINNING_EARTHs: { r: 199, g: 217, b: 241 },
         SERVER_BUTTON_ACTIVE: { r: 250, g: 138, b: 57 },
         SERVER_BUTTON_INACTIVE: { r: 153, g: 153, b: 153 },
         SERVER_BUTTON_RESULT: { r: 72, g: 145, b: 235 },
@@ -143,7 +145,7 @@
                 AppendShowCoordinates();
             }
             MonitorGodot();
-            console.log('Town Star Godot - Status Check Spinning T loaded.');
+            console.log('Town Star Godot - Status Check loaded.');
         }
     })
     postObserver.observe(document, {childList: true, subtree: true});
@@ -259,43 +261,13 @@
         let target = document.querySelector('#app iframe');
         if (target) {
             reloadObserver.disconnect();
-            // Add spinning T detection status.
-            const spinningTStatus = document.createElement('div');
-            spinningTStatus.id = 'spinning-t-status';
-            spinningTStatus.style.cssText = 'position: absolute; z-index: 9; bottom: 0; margin-left: 10px; opacity: 0.5; pointer-events: none;';
-            spinningTStatus.textContent = 'Spinning-T Detection Active v' + GM_info.script.version;
-            document.querySelector('#app').prepend(spinningTStatus);
+            // Add spinning Earth detection status.
+            const spinningEarthStatus = document.createElement('div');
+            spinningEarthStatus.id = 'spinning-earth-status';
+            spinningEarthStatus.style.cssText = 'position: absolute; z-index: 9; bottom: 0; margin-left: 10px; opacity: 0.5; pointer-events: none;';
+            spinningEarthStatus.textContent = 'Spinning-Earth Detection Active v' + GM_info.script.version;
+            document.querySelector('#app').prepend(spinningEarthStatus);
 
-            // New on-town spinning T cannot be recovered with mouse click, just reload the game.
-            /*
-            const spinningTCountContainer = document.createElement('div');
-            spinningTCountContainer.id = 'spinning-t-count-container';
-            spinningTCountContainer.style.cssText = 'position: absolute; z-index: 9; bottom: 20px; margin-left: 10px; opacity: 0.5; display: flex; pointer-events: none;';
-            const spinningTCountLabel = document.createElement('div');
-            spinningTCountLabel.id = 'spinning-t-count-label';
-            spinningTCountLabel.textContent = 'Spinning-T Count:';
-            spinningTCountLabel.style.cssText = 'padding: 0 8px 0 0';
-            spinningTCountContainer.appendChild(spinningTCountLabel);
-            const spinningTCountNumber = document.createElement('div');
-            spinningTCountNumber.id = 'spinning-t-count-number';
-            spinningTCountNumber.textContent = spinningTCount;
-            spinningTCountContainer.appendChild(spinningTCountNumber);
-            document.querySelector('#app').prepend(spinningTCountContainer);
-
-            window.addEventListener('message', event => {
-                if (event.origin.startsWith('https://tsf-client.gala.com')) {
-                    if (!reloadTriggered) {
-                        window.clearTimeout(reloadTimeout);
-                        reloadTimeout = window.setTimeout(ReloadGame, reloadTimeoutWaitMs);
-                    }
-                    const response = event.data;
-// console.log('received response',response);
-                    if (response?.spinningTCount) {
-                        UpdateSpinningTCount(response?.spinningTCount);
-                    }
-                }
-            });
-            */
             window.addEventListener('message', event => {
                 if (event.origin.startsWith('https://tsf-client.gala.com')) {
                     if (!reloadTriggered) {
@@ -352,8 +324,8 @@
         window.location.reload();
     }
 
-    function UpdateSpinningTCount(count) {
-        document.querySelector('#spinning-t-count-number').textContent = count;
+    function UpdateSpinningEarthCount(count) {
+        document.querySelector('#spinning-earth-count-number').textContent = count;
     }
 
     // Delay in ms.
@@ -364,7 +336,7 @@
     // GODOT
     async function MonitorGodot() {
         // setInterval(CheckHomePage, homePageCheckMs);
-        setInterval(CheckSpinningT, spinningTCheckMs);
+        setInterval(CheckSpinningEarth, spinningEarthCheckMs);
         setInterval(CheckTownPlaying, townPlayingCheckMs);
     }
 
@@ -638,33 +610,14 @@ console.log("Error Face detected. Reloading.");
         }
     }
 
-    async function CheckSpinningT() {
-// console.log('CheckSpinningT');
-        const isSpinningT = await IsSpinningT();
+    async function CheckSpinningEarth() {
+        const isSpinningEarth = await IsSpinningEarth();
 
-        // New on-town spinning T cannot be recovered with mouse click, just reload the game.
-        if (isSpinningT) {
-console.log("Spinning T detected. Reloading.");
+        // New on-town spinning Earth cannot be recovered with mouse click, just reload the game.
+        if (isSpinningEarth) {
+console.log("Spinning Earth detected. Reloading.");
             await ReloadGame();
         }
-        /*
-        if (isSpinningT) {
-console.log('Spinning T detected!');
-            if (spinningTActive === false) {
-                spinningTActive = true;
-                spinningTCount++;
-                PostMessageToGala({ "spinningTCount": spinningTCount });
-            }
-
-            const coordinate = GetCoordinateCanvas(UiAlign.LEFT);
-            SimulateClickFromCoordinate(coordinate, true);
-        } else {
-            if (spinningTActive === true) {
-                spinningTActive = false;
-console.log('Spinning T solved.');
-            }
-        }
-        */
     }
 
     function LogTargetAndEdges(target, edges) {
@@ -694,14 +647,14 @@ console.log('Spinning T solved.');
 
     }
 
-    async function IsSpinningT() {
-        const spinningTCoordinate = GetCoordinateSpinningT();
-        const spinningTRgb = await GetCoordinateRgb(spinningTCoordinate);
-        const spinningTsCoordinate = GetCoordinateSpinningTs();
-        const spinningTsRgb = await GetCoordinateRgb(spinningTsCoordinate);
+    async function IsSpinningEarth() {
+        const spinningEarthCoordinate = GetCoordinateSpinningEarth();
+        const spinningEarthRgb = await GetCoordinateRgb(spinningEarthCoordinate);
+        const spinningEarthsCoordinate = GetCoordinateSpinningEarths();
+        const spinningEarthsRgb = await GetCoordinateRgb(spinningEarthsCoordinate);
 
-        return VerifyRgbMatching(baseRgb.SPINNING_T, spinningTRgb) &&
-            VerifyRgbMatching(baseRgb.SPINNING_Ts, spinningTsRgb)
+        return VerifyRgbMatching(baseRgb.SPINNING_EARTH, spinningEarthRgb) &&
+            VerifyRgbMatching(baseRgb.SPINNING_EARTHs, spinningEarthsRgb)
     }
 
     function GetCanvasToDataUrl(
@@ -987,7 +940,7 @@ console.log('x = ',x,', y = ',y);
         return GetCoordinate(baseCoordinate, UiAlign.LEFT);
     }
 
-    function GetCoordinateSpinningT() {
+    function GetCoordinateSpinningEarth() {
         const baseCoordinate = {
             x1: 775,
             y1: 425,
@@ -998,7 +951,7 @@ console.log('x = ',x,', y = ',y);
         return GetCoordinate(baseCoordinate, UiAlign.CENTER, UiVerticalAlign.MIDDLE);
     }
 
-    function GetCoordinateSpinningTs() {
+    function GetCoordinateSpinningEarths() {
         const baseCoordinate = {
             x1: 841,
             y1: 490,
