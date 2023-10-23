@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.3.1
+// @version      0.2.3.2
 // @description  Town Star Godot - Status Check.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -167,7 +167,7 @@
 
         const serverSelectionContainer = document.createElement('div');
         serverSelectionContainer.id = 'server-selection-container';
-        serverSelectionContainer.style.cssText = 'display: grid; grid-template-columns: 100px 150px; position: absolute; top: 0; left: 225px; margin-left: 10px; opacity: 0.5; background-color: #fff; color: #333; padding: 4px 12px; left: 50%; transform: translate(-50%, 0); border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none; text-align: left;';
+        serverSelectionContainer.style.cssText = 'font-size: 14px; display: grid; grid-template-columns: 100px 150px; position: absolute; top: 0; opacity: 0.5; background-color: #fff; color: #333; padding: 0 12px; right: 0px; border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none; text-align: left;';
 
         const serverSelectionLabel = document.createElement('div');
         serverSelectionLabel.id = 'server-selection-label';
@@ -264,7 +264,7 @@
             // Add spinning Earth detection status.
             const spinningEarthStatus = document.createElement('div');
             spinningEarthStatus.id = 'spinning-earth-status';
-            spinningEarthStatus.style.cssText = 'position: absolute; z-index: 9; bottom: 0; margin-left: 10px; opacity: 0.5; pointer-events: none;';
+            spinningEarthStatus.style.cssText = 'font-size: 14px; position: absolute; z-index: 9; bottom: 0; padding-left: 10px; opacity: 0.5; pointer-events: none;';
             spinningEarthStatus.textContent = 'Spinning-Earth Detection Active v' + GM_info.script.version;
             document.querySelector('#app').prepend(spinningEarthStatus);
 
