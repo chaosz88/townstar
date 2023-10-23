@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Town Star Godot - Status Check
 // @namespace    http://tampermonkey.net/
-// @version      0.2.3.2
+// @version      0.2.3.3
 // @description  Town Star Godot - Status Check.
 // @author       Oizys
 // @match        *://*.gala.com/games/town-star*
@@ -167,7 +167,7 @@
 
         const serverSelectionContainer = document.createElement('div');
         serverSelectionContainer.id = 'server-selection-container';
-        serverSelectionContainer.style.cssText = 'font-size: 14px; display: grid; grid-template-columns: 100px 150px; position: absolute; top: 0; opacity: 0.5; background-color: #fff; color: #333; padding: 0 12px; right: 0px; border-radius: 0 0 8px 8px; font-family: sans-serif; user-select: none; text-align: left;';
+        serverSelectionContainer.style.cssText = 'font-size: 14px; display: grid; grid-template-columns: 100px 150px; position: absolute; bottom: 0; opacity: 0.5; background-color: #fff; color: #333; padding: 0 12px; left: 50%; transform: translate(-50%, 0); border-radius: 8px 8px 0 0; font-family: sans-serif; user-select: none; text-align: left;';
 
         const serverSelectionLabel = document.createElement('div');
         serverSelectionLabel.id = 'server-selection-label';
