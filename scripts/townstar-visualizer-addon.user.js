@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Town Star Visualizer Addon
 // @namespace    http://tampermonkey.net/
-// @version      0.8.2.17
+// @version      0.8.2.18
 // @description  Update citadelofthewind.
 // @author       Oizys, Jehosephat, Kewlhwip, TruckTonka, LowCat
 // @match        http*://citadelofthewind.com/wp-content/visualizer*
+// @match        http*://townstarvisualizer.pages.dev/visualizer*
+// @match        http*://townstar.nlo.app*
 // @run-at       document-start
 // @grant        GM_setValue
 // @grant        GM_getValue
